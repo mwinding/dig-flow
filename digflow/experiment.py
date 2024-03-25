@@ -108,7 +108,7 @@ class Experiment:
             self.raw_data_path = f'{self.save_path}/raw_data'
             self.mp4_path = f'{self.save_path}/mp4s'
 
-            for folder in [self.save_path, self.video_path, self.raw_data_path, self.mp4_path]:
+            for folder in [self.save_path, self.raw_data_path, self.mp4_path]:
                 os.makedirs(folder, exist_ok=True)
 
         elif exp == 'pupae':
@@ -119,7 +119,7 @@ class Experiment:
             self.raw_data_path = f'{self.save_path}/raw_data'
             self.predictions_path = f'{self.save_path}/predictions'
 
-            for folder in [self.save_path, self.video_path, self.raw_data_path, self.predictions_path]:
+            for folder in [self.save_path, self.raw_data_path, self.predictions_path]:
                 os.makedirs(folder, exist_ok=True)
 
     ###################################################
