@@ -240,7 +240,7 @@ class Experiment:
 
         return all_completed
 
-    def check_job_completed(self, job_id, initial_wait=60, wait=30):
+    def check_job_completed(self, job_id, initial_wait=10, wait=30):
         seconds = initial_wait
         print(f"Wait for {seconds} seconds before checking if slurm job has completed")
         time.sleep(seconds)
@@ -356,7 +356,7 @@ class Experiment:
             args = {
                 "type": "[Positions from file]",
                 "order": "[Defined by TileConfiguration]",
-                "layout_file": f'{tile_config}',
+                "layout_file": f'{self.get_tile_config()}',
                 "directory": f'{path}',
                 "fusion_method": "[Linear Blending]",
                 "regression_threshold": "0.30",
