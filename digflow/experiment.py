@@ -28,6 +28,8 @@ class Experiment:
         self.centroid_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centroid'
         self.centered_instance_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centered_instance'
         self.fiji_path = '/camp/lab/windingm/home/shared/Fiji-installation/Fiji.app'
+        scyjava.config.add_option('-Xmx6g')
+        self.ij = imagej.init(self.fiji_path) # point to local installation
         self.exp_type = exp_type
 
         self.ip_data = None
@@ -371,12 +373,8 @@ class Experiment:
                 "output_directory": f'{path}'
             }
 
-        # Start ImageJ
-        scyjava.config.add_option('-Xmx6g')
-        ij = imagej.init(self.fiji_path) # point to local installation
-
         # run plugin
-        ij.py.run_plugin(plugin, args)
+        self.ij.py.run_plugin(plugin, args)
 
         # Fiji stitcher saves output as separate 8-bit R, G, and B images
         # merge them together and save here
