@@ -15,7 +15,7 @@ import random
 import json
 
 class Experiment:
-    def __init__(self, experiment_name, conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
+    def __init__(self, experiment_name, exp_type, conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
         # *** add information about ip_addresses.csv format ***
         # *** add general information ***
 
@@ -28,8 +28,8 @@ class Experiment:
         self.centroid_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centroid'
         self.centered_instance_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centered_instance'
         self.fiji_path = '/camp/lab/windingm/home/shared/Fiji-installation/Fiji.app'
-
-        self.exp_type = None
+        self.exp_type = exp_type
+        
         self.ip_data = None
         self.IPs = None
         self.rig_num = None
@@ -322,7 +322,7 @@ class Experiment:
     def stitch_images(self, frames, save_path, name, tile_config=None):
         path = f'{self.raw_data_path}/sequence'
 
-        print(f'frame count {len(frames)}')
+        print(f'Stitching {len(frames)} frames together...')
 
         plugin = "Grid/Collection stitching"
         args = {
