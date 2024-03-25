@@ -112,7 +112,7 @@ class Experiment:
                 os.makedirs(folder, exist_ok=True)
 
         elif exp == 'pupae':
-            self.rpi_username = 'rotator'
+            self.rpi_username = 'plugcamera' #'rotator' CHANGED FOR TESTING PURPOSES
             self.save_path = f'/camp/lab/windingm/data/instruments/behavioural_rigs/{self.exp_type}/{self.name}/pupae'
             self.video_path = f'/home/{self.rpi_username}/data/'
 
