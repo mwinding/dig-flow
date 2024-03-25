@@ -121,7 +121,7 @@ class Experiment:
             self.raw_data_path = f'{self.save_path}/raw_data'
             self.predictions_path = f'{self.save_path}/predictions'
 
-            print('\nPATHS')
+            print('\nPATHS...')
             print(f"save_path is {self.save_path}")
             print(f"video_path is {self.video_path}")
             print(f"raw_data_path is {self.raw_data_path}")
@@ -539,17 +539,13 @@ class Experiment:
     
         if(script_type=='sleap_array'):
 
-            paths_string = ' '.join(paths)
-            names_string = ' '.join(names)
-
             script = f"""#!/bin/bash
-            #SBATCH --job-name=SLEAP_training
+            #SBATCH --job-name=SLEAP_infer
             #SBATCH --ntasks=1
             #SBATCH --time=08:00:00
-            #SBATCH --mem=64G
+            #SBATCH --mem=32G
             #SBATCH --partition=cpu
-            #SBATCH --cpus-per-task=4
-            #SBATCH --array=1-{len(paths)}
+            #SBATCH --cpus-per-task=8
             #SBATCH --output=slurm-%j.out
             #SBATCH --mail-user=$(whoami)@crick.ac.uk
             #SBATCH --mail-type=FAIL
@@ -559,17 +555,12 @@ class Experiment:
             source /camp/apps/eb/software/Anaconda/conda.env.sh
 
             conda activate sleap
-            IFS=' ' read -r -a paths_array <<< "{paths_string}"
-            IFS=' ' read -r -a paths_array <<< "{names_string}"
 
-            path_var="${{paths_array[$SLURM_ARRAY_TASK_ID-1]}}"
-            name_var="${{names_array[$SLURM_ARRAY_TASK_ID-1]}}"
-
-            echo $path_var
-            echo $name_var
-
-            sleap-track $path_var -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
-            sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json"""
+            for video in {self.raw_data_path}/*.jpg
+            do
+                sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
+                sleap-convert "$video".predictions.slp -o {self.predictions_path}/"$video".json --format json
+            done"""
 
         return script
 
