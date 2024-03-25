@@ -109,7 +109,7 @@ class Experiment:
             self.mp4_path = f'{self.save_path}/mp4s'
 
             for folder in [self.save_path, self.video_path, self.raw_data_path, self.mp4_path]:
-                os.makdirs(folder)
+                os.makedirs(folder, exist_ok=True)
 
         elif exp == 'pupae':
             self.rpi_username = 'rotator'
@@ -120,7 +120,7 @@ class Experiment:
             self.predictions_path = f'{self.save_path}/predictions'
 
             for folder in [self.save_path, self.video_path, self.raw_data_path, self.predictions_path]:
-                os.makdirs(folder)
+                os.makedirs(folder, exist_ok=True)
 
     ###################################################
     # PIPELINES: Transfer and process data
@@ -147,7 +147,7 @@ class Experiment:
     ##########
     def make_dir(self, path):
         if not os.path.exists(path):
-            os.makdirs(path, exist_ok=True)
+            os.makedirs(path, exist_ok=True)
         return(path)
 
     def set_start_time(self, track_type):
