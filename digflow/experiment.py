@@ -422,6 +422,9 @@ class Experiment:
                 frames = self.extract_frames(video_file_path, interval=5, save_path=video_path)
                 name = os.path.basename(video_file_path)
                 path = self.stitch_images(frames=frames, save_path=video_path, tile_config=tile_config, name=name)
+                print(path)
+                print(name)
+                print('')
 
                 names.append(name) # return file name for subsequent saving
                 paths.append(path) # return all paths of unwrapped videos for subsequent processing
