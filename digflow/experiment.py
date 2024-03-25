@@ -362,6 +362,10 @@ class Experiment:
                 "output_directory": f'{path}'
             }
 
+        # Start ImageJ
+        scyjava.config.add_option('-Xmx6g')
+        ij = imagej.init(fiji_path) # point to local installation
+
         # run plugin
         ij.py.run_plugin(plugin, args)
 
@@ -395,10 +399,6 @@ class Experiment:
 
     def unwrap_videos(self, fiji_path='/nemo/lab/windingm/home/shared/Fiji-installation/Fiji.app', tile_config=True):
         self.set_start_time('process')
-
-        # Start ImageJ
-        scyjava.config.add_option('-Xmx6g')
-        ij = imagej.init(fiji_path) # point to local installation
 
         video_path = self.raw_data_path
 
