@@ -51,9 +51,6 @@ class Experiment:
 
         random.seed(time.time()) # seeds random module with current time to ensure that the random seed is never the same
 
-        scyjava.config.add_option('-Xmx6g')
-        self.ij = imagej.init(self.fiji_path) # point to local installation
-        
     ########################
     # initialisation methods
     ########################
@@ -124,6 +121,7 @@ class Experiment:
             self.raw_data_path = f'{self.save_path}/raw_data'
             self.predictions_path = f'{self.save_path}/predictions'
 
+            print('\nPATHS')
             print(f"save_path is {self.save_path}")
             print(f"video_path is {self.video_path}")
             print(f"raw_data_path is {self.raw_data_path}")
@@ -147,6 +145,10 @@ class Experiment:
         # exp_csv = pd.read_csv(experiment_csv_path)
         self.setup_experiment_paths('pupae')
         self.transfer_data('pupae_transfer')    # transfers data from rotator RPis to NEMO
+
+        scyjava.config.add_option('-Xmx6g')
+        self.ij = imagej.init(self.fiji_path) # point to local installation
+
         paths, names = self.unwrap_videos()     # unwraps rotating vial videos
         self.sleap_prediction(paths, names)     # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # 
