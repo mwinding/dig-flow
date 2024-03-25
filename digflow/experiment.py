@@ -11,13 +11,16 @@ import shutil
 import scyjava
 import cv2
 import imagej
+import random
 
 class Experiment:
-    def __init__(self, experiment_name, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
+    def __init__(self, experiment_name, conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
         # *** add information about ip_addresses.csv format ***
         # *** add general information ***
 
         self.name = experiment_name
+        #self.conditions = conditions[0]
+        #self.N = self.set_N(conditions[1])
         self.rig_list = rig_list
         self.ip_path = ip_path
         self.remove_files = '--remove-source-files' if remove_files else ''
@@ -43,6 +46,9 @@ class Experiment:
 
         self.load_ip_data()
         self.process_ips_of_interest()
+        self.generate_experiment_csv()
+
+        random.seed(time.time()) # seeds random module with current time to ensure that the random seed is never the same
 
     ########################
     # initialisation methods
@@ -57,6 +63,41 @@ class Experiment:
             self.ip_data.index = self.rig_num
             self.IPs = self.ip_data.loc[self.rig_list, 'IP_address'].values
             self.rig_num = self.rig_list
+
+    # parse N_input, aka conditions[1], properly
+    def set_N(self, N_input):
+        if len(N_input)>1: return N_input
+        else: return N_input * len(self.conditions)
+
+    def generate_experiment_csv(self):
+        # 1-12, 13-24, 25-36, 37-48, 49-60, 61-72
+        # Shelf 1-3
+
+        positions_shelf_1 = [np.arange(1, 12),
+                                np.arange(13, 24),
+                                np.arange(25, 36),
+                                np.arange(37, 48),
+                                np.arange(49, 60),
+                                np.arange(61, 72)]
+
+        positions_shelf_2 = positions_shelf_1.copy()
+        positions_shelf_3 = positions_shelf_1.copy()
+
+        # filter out used positions
+        # filter_positions()
+        
+            # how to deal with N>12 experiments? put them all sequential or select random rows throughout the incubator
+
+        # potential start positions
+        all_positions = positions_shelf_1 + positions_shelf_2 + positions_shelf_3
+        starts = [min(x) for x in all_positions]
+
+        start_position = random.choice(starts)
+
+        # fill up positions for whole experiment
+        # identify_all_positions()
+
+        # make sure script can handle changes in position
 
     def setup_experiment_paths(self, exp):
         if exp == 'plugcamera':
@@ -86,13 +127,13 @@ class Experiment:
     ###################################################
 
     # for plugcamera
-    def pc_pipeline1():
+    def pc_pipeline1(self):
         self.setup_experiment_paths('plugcamera')
         self.transfer_data('array_transfer') # transfers data from individual RPis to NEMO
         self.crop_mp4_convert() # converts .jpgs to .mp4 and crops to smaller size
         self.timing()
 
-    def pc_pipeline2():
+    def pc_pipeline2(self):
         # exp_csv = pd.read_csv(experiment_csv_path)
         self.setup_experiment_paths('pupae')
         self.transfer_data('array_transfer')    # transfers data from individual RPis to NEMO
