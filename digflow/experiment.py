@@ -423,8 +423,8 @@ class Experiment:
     # *** NEED TO IMPLEMENT DIRECT WRITING TO CSV ***
     def write_predictions(self):
         counts = []
-        if(os.path.isdir(self.prediction_path)):
-            video_files = [f'{self.prediction_path}/{f}' for f in os.listdir(self.prediction_path) if os.path.isfile(os.path.join(self.prediction_path, f)) and not (f.endswith('.slp') or f=='.DS_Store')]
+        if(os.path.isdir(self.predictions_path)):
+            video_files = [f'{self.predictions_path}/{f}' for f in os.listdir(self.predictions_path) if os.path.isfile(os.path.join(self.predictions_path, f)) and not (f.endswith('.slp') or f=='.DS_Store')]
             for video_file in video_files:
                 with open(video_file, 'r') as file:
                     data = json.load(file)
@@ -434,7 +434,7 @@ class Experiment:
                     counts.append([pupae_count, video_file])
 
         df = pd.DataFrame(counts, columns = ['pupae_count', 'dataset'])
-        df.to_csv(f'{self.prediction_path}/pupae_counts.csv')
+        df.to_csv(f'{self.predictions_path}/pupae_counts.csv')
 
         # body_x, body_y = data['labels'][0]['_instances'][0]['_points']['0']['x'], data['labels'][0]['_instances'][0]['_points']['0']['y']
         # tail_x, tail_y = data['labels'][0]['_instances'][0]['_points']['1']['x'], data['labels'][0]['_instances'][0]['_points']['1']['y']
