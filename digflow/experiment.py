@@ -150,8 +150,11 @@ class Experiment:
         self.ij = imagej.init(self.fiji_path) # point to local installation
 
         paths, names = self.unwrap_videos()     # unwraps rotating vial videos
+        print(paths)
+        print(names)
 
         self.ij.context().dispose() # close fiji
+        self.ij.close()
 
         self.sleap_prediction(paths, names)     # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # 
