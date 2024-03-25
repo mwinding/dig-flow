@@ -240,7 +240,7 @@ class Experiment:
         
         # Wait for the array job to complete
         print(f"Waiting for slurm job {job_id} to complete...")
-        while not is_job_completed(job_id):
+        while not self.is_job_completed(job_id):
             print(f"Slurm job {job_id} is still running. Waiting...")
             time.sleep(wait)  # Check every 30 seconds
 
