@@ -392,7 +392,7 @@ class Experiment:
 
         return(f'{self.raw_data_path}/{name}.jpg')
 
-    def unwrap_videos(self, fiji_path='~/home/shared/Fiji-installation/Fiji.app', tile_config=True):
+    def unwrap_videos(self, fiji_path='/nemo/lab/windingm/home/shared/Fiji-installation/Fiji.app', tile_config=True):
         self.set_start_time('process')
 
         # Start ImageJ
