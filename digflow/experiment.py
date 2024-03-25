@@ -496,7 +496,7 @@ class Experiment:
 
             echo $ip_var
 
-            rsync -avzh --progress {self.remove_files}{self.username}@$ip_var:{self.video_path} {self.raw_data_path}
+            rsync -avzh --progress {self.remove_files}{self.rpi_username}@$ip_var:{self.video_path} {self.raw_data_path}
             rsync_status=$?
 
             # check rsync status and output file if it fails to allow user to easily notice
@@ -505,7 +505,7 @@ class Experiment:
                 echo "Rsync failed for IP: $ip_var" > "FAILED-rsync_IP-$ip_var.out"
             fi
 
-            ssh {self.username}@$ip_var "find data/ -mindepth 1 -type d -empty -delete"
+            ssh {self.rpi_username}@$ip_var "find data/ -mindepth 1 -type d -empty -delete"
             """
 
         if(script_type=='sleap_array'):
