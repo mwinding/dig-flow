@@ -109,7 +109,7 @@ class Experiment:
             self.mp4_path = f'{self.save_path}/mp4s'
 
             for folder in [self.save_path, self.video_path, self.raw_data_path, self.mp4_path]:
-                make_dir(folder)
+                os.makdirs(folder)
 
         elif exp == 'pupae':
             self.rpi_username = 'rotator'
@@ -120,7 +120,7 @@ class Experiment:
             self.predictions_path = f'{self.save_path}/predictions'
 
             for folder in [self.save_path, self.video_path, self.raw_data_path, self.predictions_path]:
-                make_dir(folder)
+                os.makdirs(folder)
 
     ###################################################
     # PIPELINES: Transfer and process data
