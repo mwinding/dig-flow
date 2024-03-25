@@ -8,6 +8,6 @@ setup(name='digflow',
       author_email='m.j.winding@gmail.com',
       license='MIT',
       packages=find_packages(include=['digflow', 'digflow.*']),
-      install_requires=['pandas', 'scyjava', 'cv2', 'imagej', 'PIL']
+      install_requires=[]
       )
 
