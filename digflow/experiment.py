@@ -152,9 +152,7 @@ class Experiment:
         paths, names = self.unwrap_videos()     # unwraps rotating vial videos
         print(paths)
         print(names)
-
         self.ij.context().dispose() # close fiji
-        self.ij.close()
 
         self.sleap_prediction(paths, names)     # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # 
@@ -566,6 +564,9 @@ class Experiment:
 
             path_var="${{paths_array[$SLURM_ARRAY_TASK_ID-1]}}"
             name_var="${{names_array[$SLURM_ARRAY_TASK_ID-1]}}"
+
+            echo $path_var
+            echo $name_var
 
             sleap-track $path_var -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
             sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json"""
