@@ -353,10 +353,13 @@ class Experiment:
 
         # if tile_config=True, stitch based on tile configuration file
         if(tile_config!=None):
+
+            self.get_tile_config()
+
             args = {
                 "type": "[Positions from file]",
                 "order": "[Defined by TileConfiguration]",
-                "layout_file": f'{self.get_tile_config()}',
+                "layout_file": 'TileConfiguration.txt',
                 "directory": f'{path}',
                 "fusion_method": "[Linear Blending]",
                 "regression_threshold": "0.30",
@@ -565,7 +568,7 @@ class Experiment:
 
     def get_tile_config(self):
 
-        file_name = f"{self.raw_data_path}/TileConfiguration.txt"
+        file_name = f"{self.raw_data_path}/sequence/TileConfiguration.txt"
 
         content = """# Define the number of dimensions we are working on
         dim = 2
