@@ -23,13 +23,11 @@ class Experiment:
         #self.conditions = conditions[0]
         #self.N = self.set_N(conditions[1])
         self.rig_list = rig_list
-        self.ip_path = ip_path
         self.remove_files = '--remove-source-files ' if remove_files else ''
         self.centroid_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centroid'
         self.centered_instance_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centered_instance'
         self.fiji_path = '/camp/lab/windingm/home/shared/Fiji-installation/Fiji.app'
-        scyjava.config.add_option('-Xmx6g')
-        self.ij = imagej.init(self.fiji_path) # point to local installation
+        self.ip_path = ip_path
         self.exp_type = exp_type
 
         self.ip_data = None
@@ -53,6 +51,9 @@ class Experiment:
 
         random.seed(time.time()) # seeds random module with current time to ensure that the random seed is never the same
 
+        scyjava.config.add_option('-Xmx6g')
+        self.ij = imagej.init(self.fiji_path) # point to local installation
+        
     ########################
     # initialisation methods
     ########################
