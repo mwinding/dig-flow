@@ -445,11 +445,6 @@ class Experiment:
     def timing(self):
         # calculate and print how long pipeline took
 
-        self.transfer_start_time = None
-        self.transfer_end_time = None
-        self.process_start_time = None
-        self.process_end_time = None
-
         rsync_time = self.transfer_end_time - self.transfer_start_time
         processing_time = self.process_end_time - self.process_start_time
         total_time = self.process_end_time - self.transfer_start_time
