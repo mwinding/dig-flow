@@ -25,9 +25,9 @@ class Experiment:
         self.rig_list = rig_list
         self.ip_path = ip_path
         self.remove_files = '--remove-source-files ' if remove_files else ''
-        self.fiji_path = '/camp/home/shared/Fiji-installation/Fiji.app'
         self.centroid_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centroid'
         self.centered_instance_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centered_instance'
+        self.fiji_path = '/camp/lab/windingm/home/shared/Fiji-installation/Fiji.app'
 
         self.exp_type = None
         self.ip_data = None
@@ -364,7 +364,7 @@ class Experiment:
 
         # Start ImageJ
         scyjava.config.add_option('-Xmx6g')
-        ij = imagej.init(fiji_path) # point to local installation
+        ij = imagej.init(self.fiji_path) # point to local installation
 
         # run plugin
         ij.py.run_plugin(plugin, args)
@@ -397,7 +397,7 @@ class Experiment:
 
         return(f'{self.raw_data_path}/{name}.jpg')
 
-    def unwrap_videos(self, fiji_path='/nemo/lab/windingm/home/shared/Fiji-installation/Fiji.app', tile_config=True):
+    def unwrap_videos(self, tile_config=True):
         self.set_start_time('process')
 
         video_path = self.raw_data_path
