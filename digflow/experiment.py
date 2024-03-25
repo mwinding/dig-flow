@@ -170,7 +170,7 @@ class Experiment:
         shell_script_content = self.sbatch_scripts(script_type)
 
         job_id = self.shell_script_run(shell_script_content)
-        check_job_completed(job_id)
+        self.check_job_completed(job_id)
 
         self.set_end_time('transfer')
 
@@ -179,7 +179,7 @@ class Experiment:
         print('\nSLEAP predictions of pupae locations...\n')
         script_content = self.sbatch_scripts('sleap_array', paths, names)
         job_id = self.shell_script_run(script_content)
-        check_job_completed(job_id)
+        self.check_job_completed(job_id)
 
         self.set_end_time('process')
 
