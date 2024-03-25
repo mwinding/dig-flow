@@ -240,7 +240,7 @@ class Experiment:
 
         return all_completed
 
-    def check_job_completed(self, job_id, initial_wait=60, wait=30):
+    def check_job_completed(self, job_id, initial_wait=10, wait=30):
         seconds = initial_wait
         print(f"Wait for {seconds} seconds before checking if slurm job has completed")
         time.sleep(seconds)
@@ -416,20 +416,16 @@ class Experiment:
         names = []
         if(os.path.isdir(video_path)):
             video_files = [f'{video_path}/{f}' for f in os.listdir(video_path) if os.path.isfile(os.path.join(video_path, f)) and not (f.endswith('.txt') or f=='.DS_Store')]
-            tile_path = self.get_tile_config() # generate tile configuration file temporarily to run Fiji plugin
 
             for video_file_path in video_files:
                 frames = self.extract_frames(video_file_path, interval=5, save_path=video_path)
                 name = os.path.basename(video_file_path)
                 path = self.stitch_images(frames=frames, save_path=video_path, tile_config=tile_config, name=name)
-                print(path)
-                print(name)
-                print('')
 
                 names.append(name) # return file name for subsequent saving
                 paths.append(path) # return all paths of unwrapped videos for subsequent processing
 
-            self.remove_tile_config(tile_path) # delete tile configuration after using Fiji plugin
+            self.remove_tile_config(f"{self.raw_data_path}/sequence/TileConfiguration.txt") # delete tile configuration after using Fiji plugin
 
         return paths, names
 
