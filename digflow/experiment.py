@@ -29,7 +29,7 @@ class Experiment:
         self.centered_instance_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centered_instance'
         self.fiji_path = '/camp/lab/windingm/home/shared/Fiji-installation/Fiji.app'
         self.exp_type = exp_type
-        
+
         self.ip_data = None
         self.IPs = None
         self.rig_num = None
@@ -114,11 +114,17 @@ class Experiment:
 
         elif exp == 'pupae':
             self.rpi_username = 'plugcamera' #'rotator' CHANGED FOR TESTING PURPOSES
+            self.IPs = '10.7.192.115' # for testing
             self.save_path = f'/camp/lab/windingm/data/instruments/behavioural_rigs/{self.exp_type}/{self.name}/pupae'
             self.video_path = f'/home/{self.rpi_username}/data/'
 
             self.raw_data_path = f'{self.save_path}/raw_data'
             self.predictions_path = f'{self.save_path}/predictions'
+
+            print(f"save_path is {self.save_path}")
+            print(f"video_path is {self.video_path}")
+            print(f"raw_data_path is {self.raw_data_path}")
+            print(f"predictions_path is {self.predictions_path}")
 
             for folder in [self.save_path, self.raw_data_path, self.predictions_path]:
                 os.makedirs(folder, exist_ok=True)
@@ -137,7 +143,7 @@ class Experiment:
     def pc_pipeline2(self):
         # exp_csv = pd.read_csv(experiment_csv_path)
         self.setup_experiment_paths('pupae')
-        self.transfer_data('array_transfer')    # transfers data from individual RPis to NEMO
+        self.transfer_data('pupae_transfer')    # transfers data from rotator RPis to NEMO
         paths, names = self.unwrap_videos()     # unwraps rotating vial videos
         self.sleap_prediction(paths, names)     # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # 
@@ -504,6 +510,26 @@ class Experiment:
             ssh {self.rpi_username}@$ip_var "find data/ -mindepth 1 -type d -empty -delete"
             """
 
+        if(script_type=='pupae_transfer'):
+
+            script = f"""#!/bin/bash
+            #SBATCH --job-name=rsync_pis
+            #SBATCH --ntasks=1
+            #SBATCH --cpus-per-task=4
+            #SBATCH --partition=cpu
+            #SBATCH --mem=10G
+            #SBATCH --time=08:00:00
+            #SBATCH --mail-user=$(whoami)@crick.ac.uk
+            #SBATCH --mail-type=FAIL
+
+            # rsync using the IP address obtained above
+            rsync -avzh --progress {self.remove_files}{self.rpi_username}@{self.IPs}:{self.video_path} {self.raw_data_path}
+            rsync_status=$?
+
+            # check rsync status and output file if it fails to allow user to easily notice
+            echo "Rsync failed for IP: $ip_var" > "FAILED-rsync_IP-$ip_var.out"
+            """
+    
         if(script_type=='sleap_array'):
 
             paths_string = ' '.join(paths)

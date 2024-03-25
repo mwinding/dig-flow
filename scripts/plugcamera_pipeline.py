@@ -15,7 +15,7 @@ rig_list = args.rig_list
 ip_path = args.ip_path
 pipeline = args.pipeline
 
-exp = dig.Experiment(experiment_name=experiment_name, exp_type='plugcamera', rig_list=rig_list, ip_path=ip_path)
+exp = dig.Experiment(experiment_name=experiment_name, exp_type='plugcamera', rig_list=rig_list, ip_path=ip_path, remove_files=False)
 
 if(pipeline==1): exp.pc_pipeline1()
 if(pipeline==2): exp.pc_pipeline2()
