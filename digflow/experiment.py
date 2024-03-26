@@ -149,12 +149,13 @@ class Experiment:
         scyjava.config.add_option('-Xmx6g')
         self.ij = imagej.init(self.fiji_path)   # point to local installation
         self.unwrap_videos()                    # unwraps rotating vial videos
+        #self.timing()
 
     def pc_pipeline3(self):
         self.setup_experiment_paths('pupae')
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # 
-        self.timing()
+        #self.timing()
 
     ##########
     # METHODS
@@ -188,10 +189,10 @@ class Experiment:
 
         self.set_end_time('transfer')
 
-    def sleap_prediction(self, paths, names):
+    def sleap_prediction(self):
 
         print('\nSLEAP predictions of pupae locations...\n')
-        script_content = self.sbatch_scripts('sleap_array', paths, names)
+        script_content = self.sbatch_scripts('sleap_array')
         job_id = self.shell_script_run(script_content)
         self.check_job_completed(job_id)
 
