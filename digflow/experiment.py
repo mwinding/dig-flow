@@ -122,10 +122,10 @@ class Experiment:
             self.predictions_path = f'{self.save_path}/predictions'
 
             print('\nPATHS...')
-            print(f"save_path is {self.save_path}")
-            print(f"video_path is {self.video_path}")
-            print(f"raw_data_path is {self.raw_data_path}")
-            print(f"predictions_path is {self.predictions_path}")
+            print(f"\tsave_path is {self.save_path}")
+            print(f"\tvideo_path is {self.video_path}")
+            print(f"\traw_data_path is {self.raw_data_path}")
+            print(f"\tpredictions_path is {self.predictions_path}")
 
             for folder in [self.save_path, self.raw_data_path, self.predictions_path]:
                 os.makedirs(folder, exist_ok=True)
@@ -147,14 +147,12 @@ class Experiment:
         self.transfer_data('pupae_transfer')    # transfers data from rotator RPis to NEMO
 
         scyjava.config.add_option('-Xmx6g')
-        self.ij = imagej.init(self.fiji_path) # point to local installation
+        self.ij = imagej.init(self.fiji_path)   # point to local installation
+        self.unwrap_videos()                    # unwraps rotating vial videos
 
-        paths, names = self.unwrap_videos()     # unwraps rotating vial videos
-        print(paths)
-        print(names)
-        self.ij.context().dispose() # close fiji
-
-        self.sleap_prediction(paths, names)     # infers pupae locations using pretrained SLEAP model
+    def pc_pipeline3(self):
+        self.setup_experiment_paths('pupae')
+        self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # 
         self.timing()
 
@@ -480,7 +478,7 @@ class Experiment:
         print(f'\nTotal time: {total_time_formatted}')
 
     # collection of sbatch scripts for pipelines
-    def sbatch_scripts(self, script_type, paths=None, names=None):
+    def sbatch_scripts(self, script_type):
 
         # for array job transfer of plugcamera data from RPis directly to NEMO
         if(script_type=='array_transfer'):
