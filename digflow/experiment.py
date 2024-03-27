@@ -154,7 +154,7 @@ class Experiment:
     def pc_pipeline3(self):
         self.setup_experiment_paths('pupae')
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
-        #self.write_predictions()                # 
+        self.write_predictions()                # 
         #self.timing()
 
     ##########
@@ -217,7 +217,6 @@ class Experiment:
 
             job_id = job_id_output.split()[-1]
 
-            print(process.stdout)
             return(job_id)
 
         else:
