@@ -149,13 +149,11 @@ class Experiment:
         scyjava.config.add_option('-Xmx6g')
         self.ij = imagej.init(self.fiji_path)   # point to local installation
         self.unwrap_videos()                    # unwraps rotating vial videos
-        #self.timing()
 
-    def pc_pipeline3(self):
         self.setup_experiment_paths('pupae')
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # 
-        #self.timing()
+        self.timing()
 
     ##########
     # METHODS
@@ -250,13 +248,13 @@ class Experiment:
 
     def check_job_completed(self, job_id, initial_wait=120, wait=30):
         seconds = initial_wait
-        print(f"Wait for {seconds} seconds before checking if slurm job has completed")
+        print(f"\tWait for {seconds} seconds before checking if slurm job has completed")
         time.sleep(seconds)
         
         # Wait for the array job to complete
-        print(f"Waiting for slurm job {job_id} to complete...")
+        print(f"\tWaiting for slurm job {job_id} to complete...")
         while not self.is_job_completed(job_id):
-            print(f"Slurm job {job_id} is still running. Waiting...")
+            print(f"\tSlurm job {job_id} is still running. Waiting...")
             time.sleep(wait)  # Check every 30 seconds
 
         print(f"Slurm job {job_id} has completed.\n")
@@ -447,7 +445,7 @@ class Experiment:
                     counts.append([pupae_count, video_file])
 
         df = pd.DataFrame(counts, columns = ['pupae_count', 'dataset'])
-        df.to_csv(f'{self.predictions_path}/pupae_counts.csv')
+        df.to_csv(f'{self.predictions_path}/pupae_counts.csv', index=False)
 
         # body_x, body_y = data['labels'][0]['_instances'][0]['_points']['0']['x'], data['labels'][0]['_instances'][0]['_points']['0']['y']
         # tail_x, tail_y = data['labels'][0]['_instances'][0]['_points']['1']['x'], data['labels'][0]['_instances'][0]['_points']['1']['y']
