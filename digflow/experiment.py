@@ -192,7 +192,7 @@ class Experiment:
     def sleap_prediction(self):
 
         print('\nSLEAP predictions of pupae locations...\n')
-        script_content = self.sbatch_scripts('sleap_array')
+        script_content = self.sbatch_scripts('sleap_predict')
         job_id = self.shell_script_run(script_content)
         self.check_job_completed(job_id)
 
@@ -536,7 +536,7 @@ class Experiment:
             echo "Rsync failed for IP: $ip_var" > "FAILED-rsync_IP-$ip_var.out"
             """
     
-        if(script_type=='sleap_array'):
+        if(script_type=='sleap_predict'):
 
             script = f"""#!/bin/bash
             #SBATCH --job-name=SLEAP_infer
@@ -556,9 +556,10 @@ class Experiment:
             conda activate sleap
 
             for video in {self.raw_data_path}/*.jpg
+            name_var=$(basename "$video" .jpg)
             do
                 sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
-                sleap-convert "$video".predictions.slp -o {self.predictions_path}/"$video".json --format json
+                sleap-convert $name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
             done"""
 
         return script
