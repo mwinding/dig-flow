@@ -483,9 +483,13 @@ class Experiment:
         total_seconds = int(total_time.total_seconds())
 
         # Format durations as MM:SS
-        rsync_time_formatted = f'{rsync_seconds // 60}:{rsync_seconds % 60:02d}'
-        processing_time_formatted = f'{processing_seconds // 60}:{processing_seconds % 60:02d}'
-        total_time_formatted = f'{total_seconds // 60}:{total_seconds % 60:02d}'
+        rsync_minutes, rsync_secs = divmod(rsync_seconds, 60)
+        processing_minutes, processing_secs = divmod(processing_seconds, 60)
+        total_minutes, total_secs = divmod(total_seconds, 60)
+
+        rsync_time_formatted = f'{rsync_minutes}:{rsync_secs:02d}'
+        processing_time_formatted = f'{processing_minutes}:{processing_secs:02d}'
+        total_time_formatted = f'{total_minutes}:{total_secs:02d}'
 
 
         print('\n\n\n')
