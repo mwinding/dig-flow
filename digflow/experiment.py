@@ -157,6 +157,16 @@ class Experiment:
         self.write_predictions()                # writes pupae number predictions to csv
         self.timing()
 
+    def pc_pipeline2_old(self):
+        self.setup_experiment_paths('pupae')
+        scyjava.config.add_option('-Xmx6g')
+        self.ij = imagej.init(self.fiji_path)   # point to local installation
+        self.unwrap_videos()                    # unwraps rotating vial videos
+
+        #self.setup_experiment_paths('pupae')
+        self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
+        self.write_predictions()                # writes pupae number predictions to csv
+
     ##########
     # METHODS
     ##########
