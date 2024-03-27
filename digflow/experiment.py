@@ -13,6 +13,7 @@ import cv2
 import imagej
 import random
 import json
+import sys
 
 class Experiment:
     def __init__(self, experiment_name, exp_type, conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
