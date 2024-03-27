@@ -191,7 +191,7 @@ class Experiment:
 
     def sleap_prediction(self):
 
-        print('\nSLEAP predictions of pupae locations...\n')
+        print('\nSLEAP predictions of pupae locations...')
         script_content = self.sbatch_scripts('sleap_predict')
         job_id = self.shell_script_run(script_content)
         self.check_job_completed(job_id)
@@ -213,7 +213,7 @@ class Experiment:
         # Check the result and extract job ID from the output
         if process.returncode == 0:
             job_id_output = process.stdout.strip()
-            print(job_id_output)
+            print(f'\t{job_id_output}')
 
             job_id = job_id_output.split()[-1]
 
@@ -238,9 +238,10 @@ class Experiment:
             if len(parts) < 2:
                 continue  # Skip any malformed lines
 
-            # Extract and ignore array job steps (e.g., "12345678_1") for simplicity
             job_id_part, job_state = parts[0], parts[1]
-            if "_" in job_id_part and not job_id_part.endswith("batch"):  # Focus on array tasks excluding batch job steps
+
+            # Check for the main job ID and any array tasks
+            if job_id_part == job_id or "_" in job_id_part:  # This line is modified to also consider the main job
                 if job_state not in ["COMPLETED", "FAILED", "CANCELLED"]:
                     all_completed = False
                     break
