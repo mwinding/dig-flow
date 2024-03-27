@@ -154,7 +154,7 @@ class Experiment:
     def pc_pipeline3(self):
         self.setup_experiment_paths('pupae')
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
-        self.write_predictions()                # 
+        #self.write_predictions()                # 
         #self.timing()
 
     ##########
@@ -559,7 +559,7 @@ class Experiment:
             name_var=$(basename "$video" .jpg)
             do
                 sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
-                sleap-convert $name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
+                sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
             done"""
 
         return script
