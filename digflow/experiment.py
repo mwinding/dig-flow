@@ -556,8 +556,8 @@ class Experiment:
             conda activate sleap
 
             for video in {self.raw_data_path}/*.jpg
-            name_var=$(basename "$video" .jpg)
             do
+                name_var=$(basename "$video" .jpg)
                 sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
                 sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
             done"""
