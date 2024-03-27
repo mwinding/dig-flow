@@ -55,9 +55,10 @@ class Experiment:
     # initialisation methods
     ########################
     def load_ip_data(self):
-        self.ip_data = pd.read_csv(self.ip_path)
-        self.IPs = self.ip_data.IP_address
-        self.rig_num = self.ip_data.rig_number
+        if self.ip_path:
+            self.ip_data = pd.read_csv(self.ip_path)
+            self.IPs = self.ip_data.IP_address
+            self.rig_num = self.ip_data.rig_number
 
     def process_ips_of_interest(self): # select only IP addresses corresponding to rig_list, if rig_list is provided
         if self.rig_list:
@@ -113,8 +114,8 @@ class Experiment:
                 os.makedirs(folder, exist_ok=True)
 
         elif exp == 'pupae':
-            self.rpi_username = 'plugcamera' #'rotator' CHANGED FOR TESTING PURPOSES
-            self.IPs = '10.7.192.115' # for testing
+            self.rpi_username = 'rotator' 
+            self.IPs = '10.7.192.163' # only one rotator rig, modify this if it ever changes
             self.save_path = f'/camp/lab/windingm/data/instruments/behavioural_rigs/{self.exp_type}/{self.name}/pupae'
             self.video_path = f'/home/{self.rpi_username}/data/'
 
@@ -150,9 +151,9 @@ class Experiment:
         self.ij = imagej.init(self.fiji_path)   # point to local installation
         self.unwrap_videos()                    # unwraps rotating vial videos
 
-        self.setup_experiment_paths('pupae')
+        #self.setup_experiment_paths('pupae')
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
-        self.write_predictions()                # 
+        self.write_predictions()                # writes pupae number predictions to csv
         self.timing()
 
     ##########
@@ -257,7 +258,7 @@ class Experiment:
             print(f"\tSlurm job {job_id} is still running. Waiting...")
             time.sleep(wait)  # Check every 30 seconds
 
-        print(f"Slurm job {job_id} has completed.\n")
+        print(f"\tSlurm job {job_id} has completed.\n")
 
 
     # generate and crop mp4 videos for each directory
@@ -377,8 +378,24 @@ class Experiment:
                 "output_directory": f'{path}'
             }
 
-        # run plugin
-        self.ij.py.run_plugin(plugin, args)
+        # run plugin, but suppress verbose output
+        # Save the current stdout and stderr
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        try:
+            # Redirect stdout and stderr to os.devnull
+            sys.stdout = open(os.devnull, 'w')
+            sys.stderr = open(os.devnull, 'w')
+            
+            # run plugin. Any print statements or errors will be suppressed.
+            self.ij.py.run_plugin(plugin, args)
+        finally:
+            # Restore the original stdout and stderr
+            sys.stdout.close()
+            sys.stderr.close()
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
 
         # Fiji stitcher saves output as separate 8-bit R, G, and B images
         # merge them together and save here
@@ -441,7 +458,7 @@ class Experiment:
                     data = json.load(file)
 
                     pupae_count = len(data['labels'][0]['_instances'])
-                    print([pupae_count, video_file])
+                    #print([pupae_count, video_file])
                     counts.append([pupae_count, video_file])
 
         df = pd.DataFrame(counts, columns = ['pupae_count', 'dataset'])
