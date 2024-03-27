@@ -445,7 +445,7 @@ class Experiment:
         paths = []
         names = []
         if(os.path.isdir(video_path)):
-            video_files = [f'{video_path}/{f}' for f in os.listdir(video_path) if os.path.isfile(os.path.join(video_path, f)) and not (f.endswith('.txt') or f=='.DS_Store')]
+            video_files = [f'{video_path}/{f}' for f in os.listdir(video_path) if os.path.isfile(os.path.join(video_path, f)) and not (f.endswith('.txt') or f=='.DS_Store' or f.endswith('.jpg'))]
 
             for video_file_path in video_files:
                 frames = self.extract_frames(video_file_path, interval=5, save_path=video_path)
