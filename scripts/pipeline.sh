@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --time=08:00:00
 #SBATCH --mem=16G
-#SBATCH --partition=cpu
+#SBATCH --partition=ncpu
 #SBATCH --cpus-per-task=8
 #SBATCH --output=slurm-%j.out
 #SBATCH --mail-user=$(whoami)@crick.ac.uk

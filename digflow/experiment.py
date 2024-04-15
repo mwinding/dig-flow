@@ -16,7 +16,7 @@ import json
 import sys
 
 class Experiment:
-    def __init__(self, experiment_name, exp_type, conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
+    def __init__(self, experiment_name, exp_type, rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
         # *** add information about ip_addresses.csv format ***
         # *** add general information ***
 
@@ -33,6 +33,7 @@ class Experiment:
 
         self.ip_data = None
         self.IPs = None
+        self.rotator_IP = rotator_IP
         self.rig_num = None
         self.save_path = None
         self.save_path_pupae = None
@@ -115,8 +116,8 @@ class Experiment:
                 os.makedirs(folder, exist_ok=True)
 
         elif exp == 'pupae':
-            self.rpi_username = 'rotator' 
-            self.IPs = '10.7.192.163' # only one rotator rig, modify this if it ever changes
+            self.rpi_username = 'rotator'
+            self.IPs = self.rotator_IP # only one rotator rig, modify this in default input if needed
             self.save_path = f'/camp/lab/windingm/data/instruments/behavioural_rigs/{self.exp_type}/{self.name}/pupae'
             self.video_path = f'/home/{self.rpi_username}/data/'
 
@@ -152,7 +153,6 @@ class Experiment:
         self.ij = imagej.init(self.fiji_path)   # point to local installation
         self.unwrap_videos()                    # unwraps rotating vial videos
 
-        #self.setup_experiment_paths('pupae')
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # writes pupae number predictions to csv
         self.timing()
@@ -163,7 +163,6 @@ class Experiment:
         self.ij = imagej.init(self.fiji_path)   # point to local installation
         self.unwrap_videos()                    # unwraps rotating vial videos
 
-        #self.setup_experiment_paths('pupae')
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # writes pupae number predictions to csv
 
@@ -187,6 +186,7 @@ class Experiment:
     def set_fiji_path(self, fiji_path): self.fiji_path = fiji_path
     def set_centroid_path(self, centroid_path): self.centroid_path = centroid_path
     def set_centered_instance_path(self, centered_instance_path): self.centered_instance_path = centered_instance_path
+    def set_rotator_IP(self, rotator_IP): self.rotator_IP = rotator_IP
 
     def transfer_data(self, script_type):
         self.set_start_time('transfer')
@@ -389,24 +389,8 @@ class Experiment:
                 "output_directory": f'{path}'
             }
 
-        # run plugin, but suppress verbose output
-        # Save the current stdout and stderr
-        original_stdout = sys.stdout
-        original_stderr = sys.stderr
-
-        try:
-            # Redirect stdout and stderr to os.devnull
-            sys.stdout = open(os.devnull, 'w')
-            sys.stderr = open(os.devnull, 'w')
-            
-            # run plugin. Any print statements or errors will be suppressed.
-            self.ij.py.run_plugin(plugin, args)
-        finally:
-            # Restore the original stdout and stderr
-            sys.stdout.close()
-            sys.stderr.close()
-            sys.stdout = original_stdout
-            sys.stderr = original_stderr
+        # run plugin in headless Fiji
+        self.ij.py.run_plugin(plugin, args)
 
         # Fiji stitcher saves output as separate 8-bit R, G, and B images
         # merge them together and save here
@@ -520,7 +504,7 @@ class Experiment:
             #SBATCH --ntasks=1
             #SBATCH --cpus-per-task=4
             #SBATCH --array=1-{len(self.IPs)}
-            #SBATCH --partition=cpu
+            #SBATCH --partition=ncpu
             #SBATCH --mem=10G
             #SBATCH --time=08:00:00
             #SBATCH --mail-user=$(whoami)@crick.ac.uk
@@ -552,7 +536,7 @@ class Experiment:
             #SBATCH --job-name=rsync_pis
             #SBATCH --ntasks=1
             #SBATCH --cpus-per-task=4
-            #SBATCH --partition=cpu
+            #SBATCH --partition=ncpu
             #SBATCH --mem=10G
             #SBATCH --time=08:00:00
             #SBATCH --mail-user=$(whoami)@crick.ac.uk
@@ -573,7 +557,7 @@ class Experiment:
             #SBATCH --ntasks=1
             #SBATCH --time=08:00:00
             #SBATCH --mem=32G
-            #SBATCH --partition=cpu
+            #SBATCH --partition=ncpu
             #SBATCH --cpus-per-task=8
             #SBATCH --output=slurm-%j.out
             #SBATCH --mail-user=$(whoami)@crick.ac.uk
