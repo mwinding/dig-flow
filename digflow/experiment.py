@@ -574,6 +574,8 @@ class Experiment:
                 name_var=$(basename "$video" .jpg)
                 sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
                 sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
+                sleap-render {self.predictions_path}/$name_var.json --marker_size 2 --edge_is_wedge 1
+                ffmpeg -i {self.predictions_path}/$name_var.json.avi -frames:v 1 {self.predictions_path}/$name_var.predictions.jpg
             done"""
 
         return script
