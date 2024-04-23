@@ -528,11 +528,12 @@ class Experiment:
 
             # check rsync status and output file if it fails to allow user to easily notice
             if [ $rsync_status -ne 0 ]; then
-                # If rsync fails, create a file indicating failure
-                echo "Rsync failed for IP: $ip_var" > "FAILED-rsync_IP-$ip_var.out"
+                # If rsync fails, create a file indicating failure and append the output of rsync
+                rsync -avzh --progress {self.remove_files}{self.rpi_username}@$ip_var:{self.video_path} {self.raw_data_path} 2> "FAILED-rsync_IP-$ip_var.out"
+            else
+                # If rsync was successful, then and only then delete the data
+                ssh {self.rpi_username}@$ip_var "find data/ -mindepth 1 -type d -empty -delete"
             fi
-
-            ssh {self.rpi_username}@$ip_var "find data/ -mindepth 1 -type d -empty -delete"
             """
 
         if(script_type=='pupae_transfer'):
@@ -550,9 +551,6 @@ class Experiment:
             # rsync using the IP address obtained above
             rsync -avzh --progress {self.remove_files}{self.rpi_username}@{self.IPs}:{self.video_path} {self.raw_data_path}
             rsync_status=$?
-
-            # check rsync status and output file if it fails to allow user to easily notice
-            echo "Rsync failed for IP: $ip_var" > "FAILED-rsync_IP-$ip_var.out"
             """
     
         if(script_type=='sleap_predict'):
