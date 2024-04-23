@@ -3,7 +3,7 @@
 # usage: when transferring from plugcameras 50, 51, and 52 for example, use the following:
 # sbatch --export=EXP_NAME=test_exp,RIG_NUMBERS="50 51 52",IP_FILE=ip_addresses.csv,PIPELINE=2 pipeline.sh
 
-#SBATCH --job-name=pc_pipe
+#SBATCH --job-name=pipe"$PIPELINE"
 #SBATCH --ntasks=1
 #SBATCH --time=08:00:00
 #SBATCH --mem=16G
