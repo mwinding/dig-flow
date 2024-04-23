@@ -565,6 +565,7 @@ class Experiment:
 
             ml purge
             ml Anaconda3/2023.09-0
+            ml FFmpeg/4.1-foss-2018b
             source /camp/apps/eb/software/Anaconda/conda.env.sh
 
             conda activate sleap
@@ -576,6 +577,7 @@ class Experiment:
                 sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
                 sleap-render {self.predictions_path}/$name_var.json --marker_size 2 --edge_is_wedge 1
                 ffmpeg -i {self.predictions_path}/$name_var.json.avi -frames:v 1 {self.predictions_path}/$name_var.predictions.jpg
+                rm {self.predictions_path}/$name_var.json.avi
             done"""
 
         return script
