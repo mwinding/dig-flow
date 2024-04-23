@@ -20,3 +20,4 @@ exp = dig.Experiment(experiment_name=experiment_name, exp_type='plugcamera', rig
 if(pipeline==1): exp.pc_pipeline1()
 if(pipeline==2): exp.pc_pipeline2()
 if(pipeline==3): exp.pc_pipeline2_no_transfer()
+if(pipeline==4): exp.pc_pipeline_test()

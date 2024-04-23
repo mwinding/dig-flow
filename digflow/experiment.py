@@ -166,6 +166,11 @@ class Experiment:
         self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # writes pupae number predictions to csv
 
+    def pc_pipeline_test(self): # testing pipeline, changes depending on what needs testing
+        self.setup_experiment_paths('pupae')
+        self.write_predictions()                # writes pupae number predictions to csv
+
+
     ##########
     # METHODS
     ##########
@@ -447,7 +452,7 @@ class Experiment:
     def write_predictions(self):
         counts = []
         if(os.path.isdir(self.predictions_path)):
-            video_files = [f'{self.predictions_path}/{f}' for f in os.listdir(self.predictions_path) if os.path.isfile(os.path.join(self.predictions_path, f)) and not (f.endswith('.slp') or f=='.DS_Store')]
+            video_files = [f'{self.predictions_path}/{f}' for f in os.listdir(self.predictions_path) if os.path.isfile(os.path.join(self.predictions_path, f)) and (f.endswith('.json'))]
             for video_file in video_files:
                 with open(video_file, 'r') as file:
                     data = json.load(file)
