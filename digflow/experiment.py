@@ -17,7 +17,7 @@ import csv
 import sys
 
 class Experiment:
-    def __init__(self, experiment_name='', exp_type, rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True, sleap_paths=None, skel_parts=None):
+    def __init__(self, exp_type, experiment_name='', rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True, sleap_paths=None, skel_parts=None):
         # *** add information about ip_addresses.csv format ***
         # *** add general information ***
 
