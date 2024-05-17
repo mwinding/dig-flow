@@ -157,7 +157,7 @@ class Experiment:
             # identify paths and filenames of all .mp4s in folder
             if(os.path.isdir(self.video_path)):
                 self.video_file_paths = [f'{self.video_path}/{f}' for f in os.listdir(self.video_path) if os.path.isfile(os.path.join(self.video_path, f)) and (f.endswith('.mp4'))]
-                self.names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
+                self.names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in self.video_file_paths]
             else:
                 print('Error: self.video_path is not a directory!')
 
