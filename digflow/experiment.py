@@ -161,6 +161,8 @@ class Experiment:
             else:
                 print('Error: self.video_path is not a directory!')
 
+            print(self.video_file_paths)
+
             # create predictions folder if it doesn't exist
             os.makedirs(self.predictions_path, exist_ok=True)
 
