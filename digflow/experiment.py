@@ -6,11 +6,7 @@ import os
 import argparse
 import time
 import tempfile
-from PIL import Image
 import shutil
-import scyjava
-import cv2
-import imagej
 import random
 import json
 import csv
@@ -110,6 +106,11 @@ class Experiment:
 
     def setup_experiment_paths(self, exp):
         if exp == 'plugcamera':
+            import scyjava
+            import cv2
+            import imagej
+            from PIL import Image
+
             self.rpi_username = 'plugcamera'
             self.save_path = f'/camp/lab/windingm/data/instruments/behavioural_rigs/{self.exp_type}/{self.name}'
             self.video_path = f'/home/{self.rpi_username}/data/'
@@ -121,6 +122,11 @@ class Experiment:
                 os.makedirs(folder, exist_ok=True)
 
         elif exp == 'pupae':
+            import scyjava
+            import cv2
+            import imagej
+            from PIL import Image
+
             self.rpi_username = 'rotator'
             self.IPs = self.rotator_IP # only one rotator rig, modify this in default input if needed
             self.save_path = f'/camp/lab/windingm/data/instruments/behavioural_rigs/{self.exp_type}/{self.name}/pupae'
@@ -150,6 +156,9 @@ class Experiment:
                 self.names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
             else:
                 print('Error: self.video_path is not a directory!')
+
+            # create predictions folder if it doesn't exist
+            os.makedirs(self.predictions_path, exist_ok=True)
 
     ###################################################
     # PIPELINES: Transfer and process data
