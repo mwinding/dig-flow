@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='digflow',
-      version='0.0.1',
+      version='0.0.2',
       description='pipelines to analyse cooperative digging videos of fruit fly larvae on a HPC',
       url='https://github.com/mwinding/dig-flow',
       author='Michael Winding',
