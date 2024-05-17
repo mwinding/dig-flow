@@ -17,7 +17,7 @@ import csv
 import sys
 
 class Experiment:
-    def __init__(self, experiment_name='', exp_type, rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True, sleap_paths=None):
+    def __init__(self, experiment_name='', exp_type, rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True, sleap_paths=None, skel_parts=None):
         # *** add information about ip_addresses.csv format ***
         # *** add general information ***
 
@@ -32,6 +32,7 @@ class Experiment:
         self.ip_path = ip_path
         self.exp_type = exp_type
         self.sleap_paths = sleap_paths
+        self.skel_parts = skel_parts
 
         self.ip_data = None
         self.IPs = None
@@ -504,6 +505,7 @@ class Experiment:
         
     # convert tracking JSONs to CSVs
     def tracks_json_to_csv(self):
+
         for name in self.names:
             with open(f'{self.predictions_path}/{name}.tracks.json', 'r') as file:
                 data = json.load(file)
@@ -511,7 +513,7 @@ class Experiment:
             data_labels = data['labels']
 
             # Generate column names based on body parts
-            columns = ['label_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
+            columns = ['label_id', 'frame'] + [f'{coord}_{part}' for part in self.skel_parts for coord in ['x', 'y', 'score']]
             
             # Open a CSV file to write to
             with open(f'{self.predictions_path}/{name}.tracks.csv', mode='w', newline='') as file:
@@ -528,16 +530,16 @@ class Experiment:
                     # Loop through each instance in the frame
                     for instance in frame['_instances']:
                         # Initialize dictionary to store coordinates and scores
-                        coords = {part: {'x': None, 'y': None, 'score': None} for part in skel_parts}
+                        coords = {part: {'x': None, 'y': None, 'score': None} for part in self.skel_parts}
 
                         # Loop through each point to assign coordinates and scores
                         for point_id, point_details in instance['_points'].items():
-                            part_name = skel_parts[int(point_id)]
+                            part_name = self.skel_parts[int(point_id)]
                             coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
                         
                         # Write row data
                         row = [video_id, frame_idx]
-                        for part in skel_parts:
+                        for part in self.skel_parts:
                             row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
                         writer.writerow(row)
 
