@@ -13,10 +13,11 @@ import cv2
 import imagej
 import random
 import json
+import csv
 import sys
 
 class Experiment:
-    def __init__(self, experiment_name, exp_type, rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True):
+    def __init__(self, experiment_name='', exp_type, rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True, sleap_paths=None):
         # *** add information about ip_addresses.csv format ***
         # *** add general information ***
 
@@ -30,6 +31,7 @@ class Experiment:
         self.fiji_path = '/camp/lab/windingm/home/shared/Fiji-installation/Fiji.app'
         self.ip_path = ip_path
         self.exp_type = exp_type
+        self.sleap_paths = sleap_paths
 
         self.ip_data = None
         self.IPs = None
@@ -46,6 +48,8 @@ class Experiment:
         self.transfer_end_time = None
         self.process_start_time = None
         self.process_end_time = None
+        self.video_file_paths = None
+        self.names = None
 
         self.load_ip_data()
         self.process_ips_of_interest()
@@ -133,6 +137,19 @@ class Experiment:
             for folder in [self.save_path, self.raw_data_path, self.predictions_path]:
                 os.makedirs(folder, exist_ok=True)
 
+        elif exp == 'sleap':
+            self.predictions_path = self.sleap_paths[0]
+            self.video_path = self.sleap_paths[1]
+            self.centroid_path = self.sleap_paths[2]
+            self.centered_instance_path = self.sleap_paths[3]
+
+            # identify paths and filenames of all .mp4s in folder
+            if(os.path.isdir(self.video_path)):
+                self.video_file_paths = [f'{self.video_path}/{f}' for f in os.listdir(self.video_path) if os.path.isfile(os.path.join(self.video_path, f)) and (f.endswith('.mp4'))]
+                self.names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
+            else:
+                print('Error: self.video_path is not a directory!')
+
     ###################################################
     # PIPELINES: Transfer and process data
     ###################################################
@@ -153,7 +170,7 @@ class Experiment:
         self.ij = imagej.init(self.fiji_path)   # point to local installation
         self.unwrap_videos()                    # unwraps rotating vial videos
 
-        self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
+        self.sleap_prediction('still')          # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # writes pupae number predictions to csv
         self.timing()
 
@@ -163,13 +180,18 @@ class Experiment:
         self.ij = imagej.init(self.fiji_path)   # point to local installation
         self.unwrap_videos()                    # unwraps rotating vial videos
 
-        self.sleap_prediction()                 # infers pupae locations using pretrained SLEAP model
+        self.sleap_prediction('still')          # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # writes pupae number predictions to csv
 
     def pc_pipeline_test(self): # testing pipeline, changes depending on what needs testing
         self.setup_experiment_paths('pupae')
         self.write_predictions()                # writes pupae number predictions to csv
 
+    # for side-view and top-down rigs
+    def sleap_pipeline1(self):
+        self.setup_experiment_paths('sleap')    
+        self.sleap_prediction('video')          # runs predictions and generates animal tracks
+        self.tracks_json_to_csv()               # converts output to CSV
 
     ##########
     # METHODS
@@ -204,14 +226,23 @@ class Experiment:
 
         self.set_end_time('transfer')
 
-    def sleap_prediction(self):
+    def sleap_prediction(self, prediction_type):
 
-        print('\nSLEAP predictions of pupae locations...')
-        script_content = self.sbatch_scripts('sleap_predict')
-        job_id = self.shell_script_run(script_content)
-        self.check_job_completed(job_id)
+        if prediction_type == 'still':
+            print('\nSLEAP predictions of pupae locations...')
+            script_content = self.sbatch_scripts('sleap_still')
+            job_id = self.shell_script_run(script_content)
+            self.check_job_completed(job_id)
 
-        self.set_end_time('process')
+            self.set_end_time('process')
+
+        if prediction_type == 'video':
+            print('\nSLEAP predictions of videos...')
+            script_content = self.sbatch_scripts('sleap_video')
+            job_id = self.shell_script_run(script_content)
+            self.check_job_completed(job_id)
+
+            self.set_end_time('process')
 
     def shell_script_run(self, shell_script_content):
         # Create a temporary file to hold the SBATCH script
@@ -470,6 +501,46 @@ class Experiment:
 
         self.set_end_time('processing')
 
+        
+    # convert tracking JSONs to CSVs
+    def tracks_json_to_csv(self):
+        for name in self.names:
+            with open(f'{self.predictions_path}/{name}.tracks.json', 'r') as file:
+                data = json.load(file)
+
+            data_labels = data['labels']
+
+            # Generate column names based on body parts
+            columns = ['label_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
+            
+            # Open a CSV file to write to
+            with open(f'{self.predictions_path}/{name}.tracks.csv', mode='w', newline='') as file:
+                writer = csv.writer(file)
+                
+                # Write the header row
+                writer.writerow(columns)
+                
+                # Loop through each frame in the data
+                for frame in data_labels:
+                    video_id = frame['video']
+                    frame_idx = frame['frame_idx']
+
+                    # Loop through each instance in the frame
+                    for instance in frame['_instances']:
+                        # Initialize dictionary to store coordinates and scores
+                        coords = {part: {'x': None, 'y': None, 'score': None} for part in skel_parts}
+
+                        # Loop through each point to assign coordinates and scores
+                        for point_id, point_details in instance['_points'].items():
+                            part_name = skel_parts[int(point_id)]
+                            coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
+                        
+                        # Write row data
+                        row = [video_id, frame_idx]
+                        for part in skel_parts:
+                            row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
+                        writer.writerow(row)
+
     def timing(self):
         # calculate and print how long pipeline took
 
@@ -505,83 +576,128 @@ class Experiment:
             IPs_string = ' '.join(self.IPs)
 
             script = f"""#!/bin/bash
-            #SBATCH --job-name=rsync_pis
-            #SBATCH --ntasks=1
-            #SBATCH --cpus-per-task=4
-            #SBATCH --array=1-{len(self.IPs)}
-            #SBATCH --partition=ncpu
-            #SBATCH --mem=10G
-            #SBATCH --time=08:00:00
-            #SBATCH --mail-user=$(whoami)@crick.ac.uk
-            #SBATCH --mail-type=FAIL
+                        #SBATCH --job-name=rsync_pis
+                        #SBATCH --ntasks=1
+                        #SBATCH --cpus-per-task=4
+                        #SBATCH --array=1-{len(self.IPs)}
+                        #SBATCH --partition=ncpu
+                        #SBATCH --mem=10G
+                        #SBATCH --time=08:00:00
+                        #SBATCH --mail-user=$(whoami)@crick.ac.uk
+                        #SBATCH --mail-type=FAIL
 
-            # convert ip_string to shell array
-            IFS=' ' read -r -a ip_array <<< "{IPs_string}"
-            ip_var="${{ip_array[$SLURM_ARRAY_TASK_ID-1]}}"
+                        # convert ip_string to shell array
+                        IFS=' ' read -r -a ip_array <<< "{IPs_string}"
+                        ip_var="${{ip_array[$SLURM_ARRAY_TASK_ID-1]}}"
 
-            # rsync using the IP address obtained above
+                        # rsync using the IP address obtained above
 
-            echo $ip_var
+                        echo $ip_var
 
-            rsync -avzh --progress {self.remove_files}{self.rpi_username}@$ip_var:{self.video_path} {self.raw_data_path}
-            rsync_status=$?
+                        rsync -avzh --progress {self.remove_files}{self.rpi_username}@$ip_var:{self.video_path} {self.raw_data_path}
+                        rsync_status=$?
 
-            # check rsync status and output file if it fails to allow user to easily notice
-            if [ $rsync_status -ne 0 ]; then
-                # If rsync fails, create a file indicating failure and append the output of rsync
-                rsync -avzh --progress {self.remove_files}{self.rpi_username}@$ip_var:{self.video_path} {self.raw_data_path} 2> "FAILED-rsync_IP-$ip_var.out"
-            else
-                # If rsync was successful, then and only then delete the data
-                ssh {self.rpi_username}@$ip_var "find data/ -mindepth 1 -type d -empty -delete"
-            fi
-            """
+                        # check rsync status and output file if it fails to allow user to easily notice
+                        if [ $rsync_status -ne 0 ]; then
+                            # If rsync fails, create a file indicating failure and append the output of rsync
+                            rsync -avzh --progress {self.remove_files}{self.rpi_username}@$ip_var:{self.video_path} {self.raw_data_path} 2> "FAILED-rsync_IP-$ip_var.out"
+                        else
+                            # If rsync was successful, then and only then delete the data
+                            ssh {self.rpi_username}@$ip_var "find data/ -mindepth 1 -type d -empty -delete"
+                        fi
+                        """
 
         if(script_type=='pupae_transfer'):
 
             script = f"""#!/bin/bash
-            #SBATCH --job-name=rsync_pis
-            #SBATCH --ntasks=1
-            #SBATCH --cpus-per-task=4
-            #SBATCH --partition=ncpu
-            #SBATCH --mem=10G
-            #SBATCH --time=08:00:00
-            #SBATCH --mail-user=$(whoami)@crick.ac.uk
-            #SBATCH --mail-type=FAIL
+                        #SBATCH --job-name=rsync_pis
+                        #SBATCH --ntasks=1
+                        #SBATCH --cpus-per-task=4
+                        #SBATCH --partition=ncpu
+                        #SBATCH --mem=10G
+                        #SBATCH --time=08:00:00
+                        #SBATCH --mail-user=$(whoami)@crick.ac.uk
+                        #SBATCH --mail-type=FAIL
 
-            # rsync using the IP address obtained above
-            rsync -avzh --progress {self.remove_files}{self.rpi_username}@{self.IPs}:{self.video_path} {self.raw_data_path}
-            rsync_status=$?
-            """
+                        # rsync using the IP address obtained above
+                        rsync -avzh --progress {self.remove_files}{self.rpi_username}@{self.IPs}:{self.video_path} {self.raw_data_path}
+                        rsync_status=$?
+                        """
     
-        if(script_type=='sleap_predict'):
+        if(script_type=='sleap_still'):
 
             script = f"""#!/bin/bash
-            #SBATCH --job-name=SLEAP_infer
-            #SBATCH --ntasks=1
-            #SBATCH --time=08:00:00
-            #SBATCH --mem=32G
-            #SBATCH --partition=ncpu
-            #SBATCH --cpus-per-task=8
-            #SBATCH --output=slurm-%j.out
-            #SBATCH --mail-user=$(whoami)@crick.ac.uk
-            #SBATCH --mail-type=FAIL
+                        #SBATCH --job-name=SLEAP_infer
+                        #SBATCH --ntasks=1
+                        #SBATCH --time=08:00:00
+                        #SBATCH --mem=32G
+                        #SBATCH --partition=ncpu
+                        #SBATCH --cpus-per-task=8
+                        #SBATCH --output=slurm-%j.out
+                        #SBATCH --mail-user=$(whoami)@crick.ac.uk
+                        #SBATCH --mail-type=FAIL
 
-            ml purge
-            ml Anaconda3/2023.09-0
-            ml FFmpeg/4.1-foss-2018b
-            source /camp/apps/eb/software/Anaconda/conda.env.sh
+                        ml purge
+                        ml Anaconda3/2023.09-0
+                        ml FFmpeg/4.1-foss-2018b
+                        source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-            conda activate sleap
+                        conda activate sleap
 
-            for video in {self.raw_data_path}/*.jpg
-            do
-                name_var=$(basename "$video" .jpg)
-                sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
-                sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
-                sleap-render {self.predictions_path}/$name_var.json --marker_size 2 --edge_is_wedge 1
-                ffmpeg -i {self.predictions_path}/$name_var.json.avi -frames:v 1 {self.predictions_path}/$name_var.predictions.jpg
-                rm {self.predictions_path}/$name_var.json.avi
-            done"""
+                        for video in {self.raw_data_path}/*.jpg
+                        do
+                            name_var=$(basename "$video" .jpg)
+                            sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
+                            sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
+                            sleap-render {self.predictions_path}/$name_var.json --marker_size 2 --edge_is_wedge 1
+                            ffmpeg -i {self.predictions_path}/$name_var.json.avi -frames:v 1 {self.predictions_path}/$name_var.predictions.jpg
+                            rm {self.predictions_path}/$name_var.json.avi
+                        done"""
+
+        if(script_type=='sleap_video'):
+
+            num_videos = len(self.video_file_paths)
+
+            # join all paths together in one string that can be later split by the .sh script
+            video_file_paths_joined = ' '.join(self.video_file_paths)
+            names_joined = ' '.join(self.names)
+
+            script = f"""#!/bin/bash
+                        #SBATCH --job-name=slp-infer
+                        #SBATCH --ntasks=1
+                        #SBATCH --cpus-per-task=16
+                        #SBATCH --array=1-{num_videos}
+                        #SBATCH --partition=ncpu
+                        #SBATCH --mem=64G
+                        #SBATCH --time=08:00:00
+                        #SBATCH --mail-user=$(whoami)@crick.ac.uk
+                        #SBATCH --mail-type=FAIL
+
+                        ml purge
+                        ml Anaconda3/2023.09-0
+                        source /camp/apps/eb/software/Anaconda/conda.env.sh
+
+                        conda activate sleap
+
+                        # convert ip_string to shell array
+                        IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
+                        path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
+
+                        IFS=' ' read -r -a name_array <<< "{names_joined}"
+                        name_var="${{name_array[$SLURM_ARRAY_TASK_ID-1]}}"
+
+                        echo "Processing mp4: $name_var"
+                        echo "Full path to mp4: $path_var"
+                        echo "Centroid model path: {self.centroid_path}"
+                        echo "Centered instance model path: {self.centered_instance_path}"
+                        echo "Output path: {self.predictions_path}/$name_var.predictions.slp"
+                        echo "Output path: {self.predictions_path}/$name_var.tracks.slp"
+                        echo "Output path: {self.predictions_path}/$name_var.tracks.json"
+
+                        sleap-track $path_var -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
+                        sleap-track --tracking.tracker flow -o {self.predictions_path}/$name_var.tracks.slp {self.predictions_path}/$name_var.predictions.slp
+                        sleap-convert {self.predictions_path}/$name_var.tracks.slp -o {self.predictions_path}/$name_var.tracks.json --format json
+                        """
 
         return script
 
