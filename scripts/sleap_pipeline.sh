@@ -20,7 +20,7 @@ source /camp/apps/eb/software/Anaconda/conda.env.sh
 conda activate sleap
 
 # Initialize command with the part that always needs to be executed
-cmd="python sleap_pipeline.py -p "$SAVE_PATH" -v "$VIDEO_PATH" -m1 "$CENTROID" -m2 "$CEN_INS""
+cmd="python sleap_pipeline.py -p "$SAVE_PATH" -v "$VIDEO_PATH" -m1 "$CENTROID" -m2 "$CEN_INS" -s "$PARTS""
 
 # Execute the command and redirect output to log file
 eval $cmd > python_output.log 2>&1
