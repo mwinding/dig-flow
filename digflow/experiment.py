@@ -48,10 +48,6 @@ class Experiment:
         self.video_file_paths = None
         self.names = None
 
-        self.load_ip_data()
-        self.process_ips_of_interest()
-        self.generate_experiment_csv()
-
         random.seed(time.time()) # seeds random module with current time to ensure that the random seed is never the same
 
     ########################
@@ -111,6 +107,10 @@ class Experiment:
             import imagej
             from PIL import Image
 
+            self.load_ip_data()
+            self.process_ips_of_interest()
+            self.generate_experiment_csv()
+
             self.rpi_username = 'plugcamera'
             self.save_path = f'/camp/lab/windingm/data/instruments/behavioural_rigs/{self.exp_type}/{self.name}'
             self.video_path = f'/home/{self.rpi_username}/data/'
@@ -126,6 +126,10 @@ class Experiment:
             import cv2
             import imagej
             from PIL import Image
+
+            self.load_ip_data()
+            self.process_ips_of_interest()
+            self.generate_experiment_csv()
 
             self.rpi_username = 'rotator'
             self.IPs = self.rotator_IP # only one rotator rig, modify this in default input if needed
