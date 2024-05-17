@@ -7,7 +7,7 @@ parser.add_argument('-p', '--predictions-path', dest='predictions_path', action=
 parser.add_argument('-v', '--video-path', dest='video_path', action='store', type=str, default=None, help='path to folder with video(s)')
 parser.add_argument('-m1', '--centroid-path', dest='centroid_path', action='store', type=str, default=None, help='path to centroid model')
 parser.add_argument('-m2', '--centered-instance-path', dest='centered_instance_path', action='store', type=str, default=None, help='path to centered instance model')
-parser.add_argument('-s', '--skel_parts', dest='skel_parts', action='store', type=str, default=None, help='skeleton parts separated by spaces')
+parser.add_argument('-s', '--skel_parts', dest='skel_parts', action='store', type=str, nargs='+', default=None, help='skeleton parts separated by spaces')
 
 
 # ingesting user-input arguments
