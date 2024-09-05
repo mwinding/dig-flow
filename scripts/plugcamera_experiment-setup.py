@@ -19,7 +19,7 @@ first_run = args.first_run
 file_path = args.file_path
 wc_date = args.wc_date
 save_path = args.save_path
-sample_size = args.sample_size
+sample_size = int(args.sample_size)
 conditions = args.conditions
 experimenters = args.experimenters
 
