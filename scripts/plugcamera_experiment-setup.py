@@ -17,7 +17,6 @@ parser.add_argument('-e', '--experimenters', dest='experimenters', action='store
 args = parser.parse_args()
 first_run = args.first_run
 file_path = args.file_path
-amend_path = args.amend_path
 wc_date = args.wc_date
 save_path = args.save_path
 sample_size = args.sample_size
