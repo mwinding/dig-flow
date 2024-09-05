@@ -10,7 +10,7 @@ from tkinter import messagebox, ttk
 from datetime import datetime, timedelta
 
 class Design:
-    def __init__(self, wc_date, save_path=None, conditions=None, sample_size=None, experimenters=None, date=None, controls_per_collection=None, file=None, amendment=None):
+    def __init__(self, wc_date, save_path=None, conditions=None, sample_size=None, experimenters=None, date=None, controls_per_collection=None, file=None):
 
         self.save_path = save_path
         self.conditions = conditions
@@ -20,7 +20,7 @@ class Design:
         else: raise ValueError(f"Sample_size must be divisible by 3\nsample_size:{sample_size} is not divisible by 3")
 
         self.file = file
-        self.amendment = amendment
+        self.amendment = None
         self.vials = pd.DataFrame(columns=['person', 'day', 'vials'])
         self.all_exps = None
         self.completed_exps = []
@@ -49,7 +49,7 @@ class Design:
 
         # work in progress
         if file!=None:
-            with open(file, 'r') as f:
+            with open(f'{file}/experiment.json', 'r') as f:
                 json_data = json.load(f)
             self.conditions = json_data['conditions']
             self.experimenters = json_data['experimenters']
@@ -57,29 +57,35 @@ class Design:
             self.completed_exps = json_data['completed']
             self.controls_per_collection = json_data['controls_per_collection']
 
-        # find amendments, e.g. failed experiments and add back to remaining_exps
-        if amendment!=None:
-            self.amendment = pd.read_csv(amendment, index_col=0)
+            # find amendments, e.g. failed experiments and add back to remaining_exps
+            self.amendment = pd.read_csv(f'{file}/shelves.csv', index_col=0)
+
+            # Check if there are any amendments with value -1
             amend_bool = self.amendment.amendments == -1
-            failed_exp = self.amendment[amend_bool].condition.values
 
-            # Create a copy of original lists to avoid modifying it while iterating
-            exp_list = self.completed_exps.copy()
-            remaining_exp_list = self.remaining_exps.copy()
+            if amend_bool.any():  # Proceed only if there are -1 entries
+                failed_exp = self.amendment[amend_bool].condition.values
 
-            # Iterate over the failed_exp list and remove elements from exp_list
-            # and add back elements to remaining_exp_list
-            for item in failed_exp:
-                # Find the index of the item starting from the end and remove it
-                index = len(exp_list) - 1 - exp_list[::-1].index(item)
-                exp_list.pop(index)
+                # Create a copy of original lists to avoid modifying it while iterating
+                exp_list = self.completed_exps.copy()
+                remaining_exp_list = self.remaining_exps.copy()
 
-                # insert item at random index in remaining_exp_list
-                index = random.randint(0, len(remaining_exp_list))
-                remaining_exp_list.insert(index, item)
+                # Iterate over the failed_exp list and remove elements from exp_list
+                # and add back elements to remaining_exp_list
+                for item in failed_exp:
+                    # Check if the item exists in exp_list before removing it
+                    if item in exp_list:
+                        index = len(exp_list) - 1 - exp_list[::-1].index(item)
+                        exp_list.pop(index)
 
-            self.completed_exps = exp_list
-            self.remaining_exps = remaining_exp_list
+                        # Insert item at random index in remaining_exp_list
+                        index = random.randint(0, len(remaining_exp_list))
+                        remaining_exp_list.insert(index, item)
+
+                self.completed_exps = exp_list
+                self.remaining_exps = remaining_exp_list
+            else:
+                print("No amendments with value -1 found. Skipping amendment processing.")
 
         if file==None:
             self.conditions_init(seed=42)
