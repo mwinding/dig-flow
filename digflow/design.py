@@ -9,7 +9,7 @@ from tkinter import messagebox, ttk
 from datetime import datetime, timedelta
 
 class Design:
-    def __init__(self, wc_date, save_path=None, conditions=None, sample_size=None, experimenters=None, date=None, controls_per_collection=None, file=None):
+    def __init__(self, wc_date, save_path=None, conditions=None, sample_size=None, experimenters=None, controls_per_collection=None, file=None):
 
         self.save_path = save_path
         if file==None: self.conditions = list(pd.read_csv(conditions, header=0).conditions)
@@ -41,7 +41,7 @@ class Design:
         self.shelf_total = 72 # for plugcamera set up
         self.controls_per_collection = controls_per_collection
         self.experimenters = experimenters
-        self.date = date
+        self.date = wc_date
 
         self.check_if_monday(wc_date)
         self.wc_date = wc_date # Monday's date (to calculate when Tuesday and Wednesday collections happened)
@@ -89,11 +89,6 @@ class Design:
         if file==None:
             self.conditions_init(seed=42)
             self.first_experiment = True
-
-        if date==None:
-            current_date = datetime.now()
-            current_date = current_date.strftime("%Y-%m-%d")
-            self.date = current_date
 
     def conditions_init(self, seed):
         random.seed(seed)
