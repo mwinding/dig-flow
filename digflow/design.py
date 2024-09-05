@@ -250,20 +250,27 @@ class Design:
         shelf_df = shelf_df.drop(columns=['plugcamera_pos'])
 
         return shelf_structure, shelf_df
-
+        
     def output(self):
         save_path = f'{self.save_path}/{self.date}'
         os.makedirs(save_path, exist_ok=True)
-        
-        self.shelves_df.to_csv(f'{save_path}/shelves.csv')
-        self.shelves[0].to_csv(f'{save_path}/shelf1_layout.csv')
-        self.shelves[1].to_csv(f'{save_path}/shelf2_layout.csv')
 
-        experiment_dict = {'conditions': self.conditions,
-                            'experimenters': self.experimenters,
-                            'remaining': self.remaining_exps,
-                            'completed': self.completed_exps,
-                            'controls_per_collection': self.controls_per_collection}
+        # Always save the first shelf
+        if len(self.shelves) > 0:
+            self.shelves_df.to_csv(f'{save_path}/shelves.csv')
+            self.shelves[0].to_csv(f'{save_path}/shelf1_layout.csv')
+        
+        # Only attempt to save the second shelf if it exists
+        if len(self.shelves) > 1:
+            self.shelves[1].to_csv(f'{save_path}/shelf2_layout.csv')
+
+        experiment_dict = {
+            'conditions': self.conditions,
+            'experimenters': self.experimenters,
+            'remaining': self.remaining_exps,
+            'completed': self.completed_exps,
+            'controls_per_collection': self.controls_per_collection
+        }
 
         with open(f'{save_path}/experiment.json', 'w') as f:
             json.dump(experiment_dict, f, indent=4)
