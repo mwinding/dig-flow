@@ -164,7 +164,7 @@ class Design:
         else:
             raise ValueError("Invalid pc_num: out of range")
         return rack_num
-
+        
     def build_shelf(self, experimenter, shelf_num):
         pattern = self.vials['person'] == experimenter
         vials_exp = self.vials[pattern]
@@ -187,11 +187,10 @@ class Design:
         if vials_day1 == 0 and vials_day2 == 0:
             return None, pd.DataFrame()
 
-        # Initialize the shelf layout (incubator has 12 rows and 6 columns)
-        default_value = '-'
-        num_rows = 12
-        num_columns = 6
-        shelf_structure = pd.DataFrame(np.full((num_rows, num_columns), default_value), columns=range(0, num_columns), index=range(0, num_rows))
+        # Total number of vials including controls
+        total_conditions_day1 = vials_day1 + self.controls_per_collection
+        total_conditions_day2 = vials_day2 + self.controls_per_collection
+        total_conditions = total_conditions_day1 + total_conditions_day2
 
         # Retrieve the remaining experiments for this experimenter
         all_exps = self.remaining_exps
@@ -205,9 +204,9 @@ class Design:
         self.remaining_exps = all_exps[len(conditions_day1 + conditions_day2):]
 
         # Fill the shelf with conditions, controls, and empty slots
-        total_conditions = conditions_day1 + ['control'] * self.controls_per_collection + conditions_day2 + ['control'] * self.controls_per_collection
-        empty_slots = 24 - len(total_conditions)  # 24 slots available on the shelf
-        total_conditions += ['-'] * empty_slots
+        total_conditions_list = conditions_day1 + ['control'] * self.controls_per_collection + conditions_day2 + ['control'] * self.controls_per_collection
+        empty_slots = 24 - len(total_conditions_list)  # 24 slots available on the shelf
+        total_conditions_list += ['-'] * empty_slots  # Fill with empty slots
 
         # Determine collection dates for each condition (day 1 for Tuesday, day 2 for Wednesday)
         date_day1, date_day2 = self.calculate_dates(date_type='collection')
@@ -215,7 +214,7 @@ class Design:
         collection_dates += [''] * empty_slots  # Empty slots don't need collection dates
 
         # Combine the conditions and their associated metadata
-        conditions_meta = list(zip(total_conditions, collection_dates))
+        conditions_meta = list(zip(total_conditions_list, collection_dates))
 
         # Shuffle the conditions before assigning to shelf
         random.shuffle(conditions_meta)
