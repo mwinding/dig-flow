@@ -326,8 +326,8 @@ class Design:
                 return
 
             # If validation passes, proceed with the next steps
-            design.build_shelves()  # Proceed with building shelves
-            design.output()  # Output the results after building shelves
+            self.build_shelves()  # Proceed with building shelves
+            self.output()  # Output the results after building shelves
 
         # Function to enter data (when adding individual vials)
         def submit_entry():
