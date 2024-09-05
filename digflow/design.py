@@ -324,6 +324,9 @@ class Design:
             self.build_shelves()  # Proceed with building shelves
             self.output()  # Output the results after building shelves
 
+            # Close the GUI window after submission
+            root.destroy()  # This will close the Tkinter window
+
         # Function to enter data (when adding individual vials)
         def submit_entry():
             person = person_var.get()
