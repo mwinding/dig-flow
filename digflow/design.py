@@ -13,7 +13,7 @@ class Design:
     def __init__(self, wc_date, save_path=None, conditions=None, sample_size=None, experimenters=None, date=None, controls_per_collection=None, file=None):
 
         self.save_path = save_path
-        self.conditions = conditions
+        if file==None: self.conditions = pd.read_csv(conditions, header=True).conditions
 
         if sample_size % 3 == 0:
             self.sample_size = int(sample_size / 3)  
