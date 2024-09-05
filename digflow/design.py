@@ -1,4 +1,3 @@
-# %%
 import pandas as pd
 import numpy as np
 import os
@@ -392,16 +391,3 @@ class Design:
         text_display.grid(row=4, column=0, columnspan=3, padx=10, pady=10)
 
         root.mainloop()
-
-# Example usage
-design = Design(wc_date='02-09-2024', save_path='./output/',sample_size=3, conditions=[f'GAL4-{x}' for x in range(1, 31)], experimenters=['Lucy','Lena'], controls_per_collection=1)
-design.vials_gui()
-design.build_shelves()
-design.output()
-
-# %%
-design2 = Design(save_path='output/',file='output/2024-09-04/experiment.json', date='2024-07-23', amendment='output/2024-07-22/shelves.csv')
-design2.vials_gui()
-design2.build_shelves()
-design2.output()
-# %%
