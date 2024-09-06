@@ -28,7 +28,6 @@ control_sample_size = int(args.control_sample_size)
 if first_run=='True':
     design = dig.Design(wc_date=wc_date, save_path=save_path,sample_size=sample_size, conditions=conditions, experimenters=experimenters, controls_per_collection=control_sample_size)
     design.vials_gui()
-    design.build_shelves()
     design.output()
 
 if first_run=='False':
