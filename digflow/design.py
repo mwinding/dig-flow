@@ -164,7 +164,7 @@ class Design:
         else:
             raise ValueError("Invalid pc_num: out of range")
         return rack_num
-        
+
     def build_shelf(self, experimenter, shelf_num):
         pattern = self.vials['person'] == experimenter
         vials_exp = self.vials[pattern]
@@ -236,6 +236,8 @@ class Design:
 
         # Prepare a list to store the positions of the filled conditions
         positions = []
+        print(len(conditions_meta))
+        print(conditions_meta)
 
         # Loop over each row and column of the shelf to place conditions
         for idx, (row, col) in enumerate([(row, col) for col in col_indices for row in range(len(shelf.index))]):
