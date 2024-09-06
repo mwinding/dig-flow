@@ -135,19 +135,20 @@ class Design:
 
     def build_shelves(self):
         experimenters = np.unique(self.vials.person)
-        
-        # Only consider experimenters with non-zero vials
-        experimenters_with_vials = [exp for exp in experimenters if (self.vials[self.vials['person'] == exp]['vials'].sum() > 0)]
-        
-        random.shuffle(experimenters_with_vials)
-        num_shelves = len(experimenters_with_vials)
-        
-        # Loop over each valid experimenter
-        for i, experimenter in enumerate(experimenters_with_vials):
-            shelf, shelf_df = self.build_shelf(experimenter=experimenter, shelf_num=i)
-            self.shelves.append(shelf)  # Add shelf only for valid experimenters
-            self.shelves_df = pd.concat([self.shelves_df, shelf_df], ignore_index=True)
+        random.shuffle(experimenters)
+        #print(experimenters)
+        # Clear the shelves and shelves_df before building to avoid duplication
+        self.shelves = []
+        self.shelves_df = pd.DataFrame()
 
+        for i, experimenter in enumerate(experimenters):
+            shelf, shelf_df = self.build_shelf(experimenter=experimenter, shelf_num=i)
+            #print(experimenter)
+            if shelf is not None and not shelf_df.empty:
+                # Only append non-empty shelves and data
+                self.shelves.append(shelf)
+                self.shelves_df = pd.concat([self.shelves_df, shelf_df], ignore_index=True)
+    
     # note that this function uses hardcoded numbers for the shelf size
     def pc_to_rack(self, pc_num):
         # Check if the pc_num belongs to the bottom shelf (starts from 73)
@@ -169,124 +170,119 @@ class Design:
         pattern = self.vials['person'] == experimenter
         vials_exp = self.vials[pattern]
 
-        # Sum the number of vials for Tuesday and Wednesday
-        vials_day1 = vials_exp[vials_exp['day'] == 'Tuesday']['vials'].sum()
-        vials_day2 = vials_exp[vials_exp['day'] == 'Wednesday']['vials'].sum()
+        vials_day1 = vials_exp['day'] == 'Tuesday'
+        vials_day2 = vials_exp['day'] == 'Wednesday'
 
-        # Only deduct controls if there are vials on that day
-        if vials_day1 > 0:
-            vials_day1 -= self.controls_per_collection
-        if vials_day2 > 0:
-            vials_day2 -= self.controls_per_collection
+        collection_day1 = vials_exp[vials_day1].vials.iloc[0]
+        collection_day2 = vials_exp[vials_day2].vials.iloc[0]
 
-        # Prevent negative vial counts
-        vials_day1 = max(0, vials_day1)
-        vials_day2 = max(0, vials_day2)
+        # Remove controls only if there are vials
+        if collection_day1 > 0:
+            collection_day1 -= self.controls_per_collection
 
-        # If no vials on both days, return None (i.e., no shelf needed)
-        if vials_day1 == 0 and vials_day2 == 0:
+        if collection_day2 > 0:
+            collection_day2 -= self.controls_per_collection
+
+        # Ensure collection numbers don't go negative
+        collection_day1 = max(0, collection_day1)
+        collection_day2 = max(0, collection_day2)
+
+        # If both collection_day1 and collection_day2 are zero, skip this shelf
+        if collection_day1 == 0 and collection_day2 == 0:
             return None, pd.DataFrame()
 
-        # Total number of vials including controls
-        total_conditions_day1 = vials_day1 + self.controls_per_collection
-        total_conditions_day2 = vials_day2 + self.controls_per_collection
-        total_conditions = total_conditions_day1 + total_conditions_day2
-
-        # Initialize the shelf layout (incubator has 12 rows and 6 columns)
+        # Initialize shelf shape, based on physical dimensions of the incubator
         default_value = '-'
         num_rows = 12
         num_columns = 6
+
+        # Create the shelf structure
         shelf_structure = pd.DataFrame(np.full((num_rows, num_columns), default_value), columns=range(0, num_columns), index=range(0, num_rows))
 
-        # Retrieve the remaining experiments for this experimenter
         all_exps = self.remaining_exps
 
-        # Select the conditions for day 1 and day 2
-        conditions_day1 = all_exps[:vials_day1]
-        conditions_day2 = all_exps[vials_day1:vials_day1 + vials_day2]
+        # Select conditions for day 1 and day 2 without duplicates
+        conditions_day1 = all_exps[:collection_day1]
+        conditions_day2 = all_exps[collection_day1:collection_day1 + collection_day2]
+        #print(conditions_day1)
+        #print(conditions_day2)
 
-        # Update the completed and remaining experiments lists
-        self.completed_exps += conditions_day1 + conditions_day2
+        self.completed_exps = self.completed_exps + conditions_day1 + conditions_day2
+        #print(self.completed_exps)
         self.remaining_exps = all_exps[len(conditions_day1 + conditions_day2):]
 
-        # Fill the shelf with conditions, controls, and empty slots
-        total_conditions_list = conditions_day1 + ['control'] * self.controls_per_collection + conditions_day2 + ['control'] * self.controls_per_collection
-        empty_slots = 24 - len(total_conditions_list)  # 24 slots available on the shelf
-        total_conditions_list += ['-'] * empty_slots  # Fill with empty slots
+        empty = 24 - len(conditions_day1) - len(conditions_day2) - self.controls_per_collection * 2
 
-        # Determine collection dates for each condition (day 1 for Tuesday, day 2 for Wednesday)
-        date_day1, date_day2 = self.calculate_dates(date_type='collection')
-        collection_dates = [date_day1] * (len(conditions_day1) + self.controls_per_collection) + [date_day2] * (len(conditions_day2) + self.controls_per_collection)
-        collection_dates += [''] * empty_slots  # Empty slots don't need collection dates
+        conditions = conditions_day1 + ['control'] * self.controls_per_collection + conditions_day2 + ['control'] * self.controls_per_collection + ['-'] * empty
+        date_day1 = self.calculate_dates(date_type='collection')[0]
+        date_day2 = self.calculate_dates(date_type='collection')[1]
+        collection_meta = [f'{date_day1}'] * len(conditions_day1 + ['control'] * self.controls_per_collection) + [f'{date_day2}'] * len(conditions_day2 + ['control'] * self.controls_per_collection) + [''] * empty
 
-        # Combine the conditions and their associated metadata
-        conditions_meta = list(zip(total_conditions_list, collection_dates))
+        conditions_meta = list(zip(conditions, collection_meta))
 
-        # Shuffle the conditions before assigning to shelf
         random.shuffle(conditions_meta)
 
-        # Distribute the conditions across the shelf
-        shelf_structure, df = self.fill_columns_with_conditions(shelf_structure, conditions_meta, shelf_num)
+            # Distribute the conditions across the shelf
+        def fill_columns_with_conditions(shelf, conditions, col_indices, shelf_num, date):
+            # Assign the shuffled conditions to the specified columns
+            positions = []
+            for idx, (row, col) in enumerate([(row, col) for col in col_indices for row in range(len(shelf.index))]):
+                shelf.iloc[row, col] = conditions[idx][0]
 
-        return shelf_structure, df
+                # populate dataframe with non-empty conditions
+                if conditions[idx][0] != '-':
+                    pc_num = self.shelf_template.iloc[row,col]+(self.shelf_total*shelf_num)
+                    index = {'experimenter': experimenter,
+                            'shelf': shelf_num + 1,
+                            'rack': self.pc_to_rack(pc_num),
+                            'plugcamera': f'pc{pc_num}',
+                            'condition': conditions[idx][0],
+                            'collection_date': conditions[idx][1],
+                            'staging_date': date,
+                            'amendments': '',
+                            'plugcamera_pos': self.shelf_template.iloc[row,col]+(self.shelf_total*shelf_num)}
 
-    def fill_columns_with_conditions(self, shelf, conditions_meta, shelf_num):
-        # Define the columns to be filled (shelf has 6 columns)
-        col_indices = [0, 1, 2, 3, 4, 5]
+                    positions.append(index)
 
-        # Prepare a list to store the positions of the filled conditions
-        positions = []
-        print(len(conditions_meta))
-        print(conditions_meta)
+            df = pd.DataFrame(positions)
+            return shelf, df
 
-        # Loop over each row and column of the shelf to place conditions
-        for idx, (row, col) in enumerate([(row, col) for col in col_indices for row in range(len(shelf.index)-1)]):
-            print(idx)
-            condition, collection_date = conditions_meta[idx]
-            shelf.iloc[row, col] = condition  # Place the condition in the shelf
+        # Staging dates (you already calculate them earlier in the function)
+        staging_day1, staging_day2, staging_day3 = self.calculate_dates(date_type='staging')
 
-            # Only record positions for non-empty conditions (no '-')
-            if condition != '-':
-                # Calculate the plugcamera number (pc_num) based on shelf layout
-                pc_num = self.shelf_template.iloc[row, col] + (self.shelf_total * shelf_num)
-                
-                # Record the experiment details for this condition
-                index = {
-                    'experimenter': self.experimenters[shelf_num],  # Experimenter assigned to this shelf
-                    'shelf': shelf_num + 1,
-                    'rack': self.pc_to_rack(pc_num),
-                    'plugcamera': f'pc{pc_num}',
-                    'condition': condition,
-                    'collection_date': collection_date,
-                    'staging_date': '',  # Staging dates will be filled later
-                    'amendments': ''
-                }
-                positions.append(index)
+        # Now, fill the columns with conditions
+        shelf_structure, df_1 = fill_columns_with_conditions(shelf_structure, conditions_meta, [0, 1], shelf_num, staging_day1)
+        random.shuffle(conditions_meta)
+        shelf_structure, df_2 = fill_columns_with_conditions(shelf_structure, conditions_meta, [2, 3], shelf_num, staging_day2)
+        random.shuffle(conditions_meta)
+        shelf_structure, df_3 = fill_columns_with_conditions(shelf_structure, conditions_meta, [4, 5], shelf_num, staging_day3)
 
-        # Convert the positions list to a DataFrame
-        df = pd.DataFrame(positions)
-        
-        return shelf, df
+        # Combine all shelf data
+        shelf_df = pd.concat([df_1, df_2, df_3])
+        shelf_df = shelf_df.sort_values('plugcamera_pos', ascending=True)
+        shelf_df = shelf_df.drop(columns=['plugcamera_pos'])
+
+        return shelf_structure, shelf_df
 
     def output(self):
         save_path = f'{self.save_path}/{self.date}'
         os.makedirs(save_path, exist_ok=True)
-
-        # Save the shelves only if they exist
-        if len(self.shelves) > 0:
+        
+        # Save the shelves dataframe if it has data
+        if not self.shelves_df.empty:
             self.shelves_df.to_csv(f'{save_path}/shelves.csv')
 
+        # Save individual shelf layouts only if the shelves exist
         for idx, shelf in enumerate(self.shelves):
-            if shelf is not None:  # Only save valid shelves
+            if shelf is not None:
                 shelf.to_csv(f'{save_path}/shelf{idx + 1}_layout.csv')
 
-        experiment_dict = {
-            'conditions': self.conditions,
-            'experimenters': self.experimenters,
-            'remaining': self.remaining_exps,
-            'completed': self.completed_exps,
-            'controls_per_collection': self.controls_per_collection
-        }
+        # Save the experiment JSON
+        experiment_dict = {'conditions': self.conditions,
+                            'experimenters': self.experimenters,
+                            'remaining': self.remaining_exps,
+                            'completed': self.completed_exps,
+                            'controls_per_collection': self.controls_per_collection}
 
         with open(f'{save_path}/experiment.json', 'w') as f:
             json.dump(experiment_dict, f, indent=4)
@@ -305,7 +301,7 @@ class Design:
                 # Skip validation if the person has no entries (i.e., both Tuesday and Wednesday are 0)
                 if vials_per_person_day.loc[person, 'Tuesday'] == 0 and vials_per_person_day.loc[person, 'Wednesday'] == 0:
                     continue  # No need to validate if no entries exist
-                
+
                 # Check if there's more than one entry for Tuesday
                 if vials_per_person_day.loc[person, 'Tuesday'] > 1:
                     # Collect all invalid Tuesday entries
@@ -347,8 +343,8 @@ class Design:
             self.build_shelves()  # Proceed with building shelves
             self.output()  # Output the results after building shelves
 
-            # Close the GUI window after submission
-            root.destroy()  # This will close the Tkinter window
+            # Close the GUI window after submission to prevent further changes
+            root.destroy()
 
         # Function to enter data (when adding individual vials)
         def submit_entry():
@@ -412,3 +408,16 @@ class Design:
         text_display.grid(row=4, column=0, columnspan=3, padx=10, pady=10)
 
         root.mainloop()
+
+'''
+wc_date = '09-09-2024'
+save_path = 'output'
+sample_size = 15
+conditions = 'conditions.csv'
+experimenters = ['Lucy', 'Lena', 'Alice', 'Anna', 'Michael']
+control_sample_size = 1
+
+design = Design(wc_date=wc_date, save_path=save_path,sample_size=sample_size, conditions=conditions, experimenters=experimenters, controls_per_collection=control_sample_size)
+design.vials_gui()
+design.output()
+'''
