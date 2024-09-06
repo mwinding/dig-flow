@@ -240,7 +240,7 @@ class Design:
         print(conditions_meta)
 
         # Loop over each row and column of the shelf to place conditions
-        for idx, (row, col) in enumerate([(row, col) for col in col_indices for row in range(len(shelf.index))]):
+        for idx, (row, col) in enumerate([(row, col) for col in col_indices for row in range(len(shelf.index)-1)]):
             print(idx)
             condition, collection_date = conditions_meta[idx]
             shelf.iloc[row, col] = condition  # Place the condition in the shelf
