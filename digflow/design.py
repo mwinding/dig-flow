@@ -14,9 +14,10 @@ class Design:
         self.save_path = save_path
         if file==None: self.conditions = list(pd.read_csv(conditions, header=0).conditions)
 
-        if sample_size % 3 == 0:
-            self.sample_size = int(sample_size / 3)  
-        else: raise ValueError(f"Sample_size must be divisible by 3\nsample_size:{sample_size} is not divisible by 3")
+        if sample_size!=None:
+            if sample_size % 3 == 0:
+                self.sample_size = int(sample_size / 3)  
+            else: raise ValueError(f"Sample_size must be divisible by 3\nsample_size:{sample_size} is not divisible by 3")
 
         self.file = file
         self.amendment = None
