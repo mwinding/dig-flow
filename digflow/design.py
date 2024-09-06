@@ -234,6 +234,7 @@ class Design:
                 if conditions[idx][0] != '-':
                     pc_num = self.shelf_template.iloc[row,col]+(self.shelf_total*shelf_num)
                     index = {'experimenter': experimenter,
+                            'collector': experimenter,
                             'shelf': shelf_num + 1,
                             'rack': self.pc_to_rack(pc_num),
                             'plugcamera': f'pc{pc_num}',
