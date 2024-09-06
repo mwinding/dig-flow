@@ -9,7 +9,7 @@ parser.add_argument('-f', '--first-run', dest='first_run', action='store', type=
 parser.add_argument('-p', '--file_path', dest='file_path', action='store', type=str, help='path to the save file from last session')
 parser.add_argument('-d', '--wc-date', dest='wc_date', action='store', type=str, required=True, help='Mondays date for week of collections')
 parser.add_argument('-s', '--save-path', dest='save_path', action='store', type=str, default=None, help='path to output folder')
-parser.add_argument('-n', '--sample-size', dest='sample_size', action='store', type=int, default=None, help='number of samples required per condition, must be divisible by 3')
+parser.add_argument('-n', '--sample-size', dest='sample_size', action='store', type=int, help='number of samples required per condition, must be divisible by 3')
 parser.add_argument('-c', '--conditions', dest='conditions', action='store', type=str, default=None, help='conditions to be tested, recommend to be in the tray-position format from the fly stock database')
 parser.add_argument('-e', '--experimenters', dest='experimenters', action='store', type=str, nargs='+', default=['Lucy', 'Lena', 'Alice', 'Anna', 'Michael'], help='names of experimenters')
 parser.add_argument('-cn', '--control_sample_size', dest='control_sample_size', action='store', type=int, help='number of controls per collection')
@@ -32,3 +32,5 @@ if first_run=='True':
 
 if first_run=='False':
     design = dig.Design(wc_date=wc_date, file=file_path)
+    design.vials_gui()
+    design.output()
