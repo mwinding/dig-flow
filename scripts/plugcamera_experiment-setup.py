@@ -31,6 +31,6 @@ if first_run=='True':
     design.output()
 
 if first_run=='False':
-    design = dig.Design(wc_date=wc_date, file=file_path)
+    design = dig.Design(wc_date=wc_date, save_path=save_path, file=file_path)
     design.vials_gui()
     design.output()
