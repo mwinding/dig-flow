@@ -192,6 +192,12 @@ class Design:
         total_conditions_day2 = vials_day2 + self.controls_per_collection
         total_conditions = total_conditions_day1 + total_conditions_day2
 
+        # Initialize the shelf layout (incubator has 12 rows and 6 columns)
+        default_value = '-'
+        num_rows = 12
+        num_columns = 6
+        shelf_structure = pd.DataFrame(np.full((num_rows, num_columns), default_value), columns=range(0, num_columns), index=range(0, num_rows))
+
         # Retrieve the remaining experiments for this experimenter
         all_exps = self.remaining_exps
 
