@@ -214,10 +214,10 @@ class Design:
 
         empty = 24 - len(conditions_day1) - len(conditions_day2) - self.controls_per_collection * 2
 
-        conditions = conditions_day1 + ['control'] * self.controls_per_collection + conditions_day2 + ['control'] * self.controls_per_collection + ['-'] * empty
+        conditions = conditions_day1 + [f'control-{x}' for x in self.controls_per_collection] + conditions_day2 + [f'control-{x}' for x in self.controls_per_collection] + ['-'] * empty
         date_day1 = self.calculate_dates(date_type='collection')[0]
         date_day2 = self.calculate_dates(date_type='collection')[1]
-        collection_meta = [f'{date_day1}'] * len(conditions_day1 + ['control'] * self.controls_per_collection) + [f'{date_day2}'] * len(conditions_day2 + ['control'] * self.controls_per_collection) + [''] * empty
+        collection_meta = [f'{date_day1}'] * (len(conditions_day1) + self.controls_per_collection) + [f'{date_day2}'] * (len(conditions_day2) + self.controls_per_collection) + [''] * empty
 
         conditions_meta = list(zip(conditions, collection_meta))
 
