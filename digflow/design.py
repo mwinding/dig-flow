@@ -214,7 +214,11 @@ class Design:
 
         empty = 24 - len(conditions_day1) - len(conditions_day2) - self.controls_per_collection * 2
 
-        conditions = conditions_day1 + [f'control-{x}' for x in self.controls_per_collection] + conditions_day2 + [f'control-{x}' for x in self.controls_per_collection] + ['-'] * empty
+        if self.controls_per_collection > 1:
+            conditions = conditions_day1 + [f'control-1-{x}' for x in range(1, self.controls_per_collection+1)] + conditions_day2 + [f'control-2-{x}' for x in range(1, self.controls_per_collection+1)] + ['-'] * empty
+        else: # if self.controls_per_collection == 1
+            conditions = conditions_day1 + ['control-1'] + conditions_day2 + [f'control-2'] + ['-'] * empty
+
         date_day1 = self.calculate_dates(date_type='collection')[0]
         date_day2 = self.calculate_dates(date_type='collection')[1]
         collection_meta = [f'{date_day1}'] * (len(conditions_day1) + self.controls_per_collection) + [f'{date_day2}'] * (len(conditions_day2) + self.controls_per_collection) + [''] * empty
@@ -263,6 +267,10 @@ class Design:
         shelf_df = pd.concat([df_1, df_2, df_3])
         shelf_df = shelf_df.sort_values('plugcamera_pos', ascending=True)
         shelf_df = shelf_df.drop(columns=['plugcamera_pos'])
+
+        # Sort each group of shelf/rack alphabetically by condition
+        shelf_df['condition'] = shelf_df['condition'].apply(str)
+        shelf_df = shelf_df.sort_values(by=['shelf', 'rack', 'condition'], key=lambda col: col.str.lower() if col.name == 'condition' else col)
 
         return shelf_structure, shelf_df
 
@@ -417,7 +425,7 @@ save_path = 'output'
 sample_size = 15
 conditions = 'conditions.csv'
 experimenters = ['Lucy', 'Lena', 'Alice', 'Anna', 'Michael']
-control_sample_size = 1
+control_sample_size = 2
 
 design = Design(wc_date=wc_date, save_path=save_path,sample_size=sample_size, conditions=conditions, experimenters=experimenters, controls_per_collection=control_sample_size)
 design.vials_gui()
