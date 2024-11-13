@@ -17,7 +17,7 @@ ml purge
 ml Anaconda3/2023.09-0
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-conda activate sleap
+conda activate /camp/lab/windingm/home/shared/conda-envs/sleap #use shared conda env on NEMO
 
 # Initialize command with the part that always needs to be executed
 cmd="python sleap_pipeline.py -p "$SAVE_PATH" -v "$VIDEO_PATH" -m1 "$CENTROID" -m2 "$CEN_INS" -s "$PARTS""
