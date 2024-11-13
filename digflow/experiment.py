@@ -22,8 +22,8 @@ class Experiment:
         #self.N = self.set_N(conditions[1])
         self.rig_list = rig_list
         self.remove_files = '--remove-source-files ' if remove_files else ''
-        self.centroid_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centroid'
-        self.centered_instance_path = '/camp/lab/windingm/home/shared/SLEAP_models/pupae_detection/240306_235934.centered_instance'
+        self.centroid_path = '/camp/lab/windingm/home/shared/models/pupae/active/240306_235934.centroid'
+        self.centered_instance_path = '/camp/lab/windingm/home/shared/models/pupae/active/240306_235934.centered_instance'
         self.fiji_path = '/camp/lab/windingm/home/shared/Fiji-installation/Fiji.app'
         self.ip_path = ip_path
         self.exp_type = exp_type
