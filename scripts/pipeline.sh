@@ -21,7 +21,7 @@ ml Anaconda3/2023.09-0
 ml FFmpeg/4.1-foss-2018b
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-conda activate pyimagej-env # swap to /camp/lab/windingm/home/shared/conda-envs/pyimagej-env
+conda activate /camp/lab/windingm/home/shared/conda-envs/pyimagej-env
 
 # Initialize command with the part that always needs to be executed
 cmd="python plugcamera_pipeline.py -e "$EXP_NAME" -p "$PIPELINE""
