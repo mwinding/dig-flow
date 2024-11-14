@@ -4,8 +4,8 @@
 # sbatch --export=EXP_NAME=test_exp,RIG_NUMBERS="50 51 52",IP_FILE=ip_addresses.csv,PIPELINE=2 pipeline.sh
 
 #SBATCH --ntasks=1
-#SBATCH --time=08:00:00
-#SBATCH --mem=16G
+#SBATCH --time=24:00:00
+#SBATCH --mem=30G
 #SBATCH --partition=ncpu
 #SBATCH --cpus-per-task=8
 #SBATCH --output=slurm-%j.out
@@ -21,7 +21,7 @@ ml Anaconda3/2023.09-0
 ml FFmpeg/4.1-foss-2018b
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-conda activate pyimagej-env
+conda activate pyimagej-env # swap to /camp/lab/windingm/home/shared/conda-envs/pyimagej-env
 
 # Initialize command with the part that always needs to be executed
 cmd="python plugcamera_pipeline.py -e "$EXP_NAME" -p "$PIPELINE""
