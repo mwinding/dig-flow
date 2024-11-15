@@ -659,7 +659,7 @@ class Experiment:
                         ml FFmpeg/4.1-foss-2018b
                         source /camp/apps/eb/software/Anaconda/conda.env.sh
                         
-                        conda activate sleap
+                        conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
 
                         for video in {self.raw_data_path}/*.jpg
                         do
