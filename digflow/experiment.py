@@ -201,6 +201,7 @@ class Experiment:
 
     def pc_pipeline_test(self): # testing pipeline, changes depending on what needs testing
         self.setup_experiment_paths('pupae')
+        self.sleap_prediction('still')          # infers pupae locations using pretrained SLEAP model
         self.write_predictions()                # writes pupae number predictions to csv
 
     # for side-view and top-down rigs
