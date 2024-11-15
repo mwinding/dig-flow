@@ -664,6 +664,12 @@ class Experiment:
                         for video in {self.raw_data_path}/*.jpg
                         do
                             name_var=$(basename "$video" .jpg)
+                            echo "Processing jpg: $name_var"
+                            echo "Full path: $video"
+                            echo "Centroid model path: {self.centroid_path}"
+                            echo "Centered instance model path: {self.centered_instance_path}"
+                            echo "Output path: {self.predictions_path}/$name_var.predictions.slp"
+
                             sleap-track "$video" -m {self.centroid_path} -m {self.centered_instance_path} -o {self.predictions_path}/$name_var.predictions.slp
                             sleap-convert {self.predictions_path}/$name_var.predictions.slp -o {self.predictions_path}/$name_var.json --format json
                             sleap-render {self.predictions_path}/$name_var.json --marker_size 2 --edge_is_wedge 1
