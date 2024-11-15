@@ -200,8 +200,14 @@ class Experiment:
         self.write_predictions()                # writes pupae number predictions to csv
 
     def pc_pipeline_test(self): # testing pipeline, changes depending on what needs testing
+        print("Running self.setup_experiment_paths('pupae')...")
         self.setup_experiment_paths('pupae')
+        print("Completed self.setup_experiment_paths('pupae')...")
+
+        print("Running self.sleap_prediction('still')...")
         self.sleap_prediction('still')          # infers pupae locations using pretrained SLEAP model
+        print("Completed self.sleap_prediction('still')...")
+
         self.write_predictions()                # writes pupae number predictions to csv
 
     # for side-view and top-down rigs
