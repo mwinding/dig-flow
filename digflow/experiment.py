@@ -659,7 +659,7 @@ class Experiment:
                         ml FFmpeg/4.1-foss-2018b
                         source /camp/apps/eb/software/Anaconda/conda.env.sh
                         
-                        conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
+                        conda activate sleap
 
                         for video in {self.raw_data_path}/*.jpg
                         do
@@ -694,7 +694,7 @@ class Experiment:
                         ml Anaconda3/2023.09-0
                         source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-                        conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
+                        conda activate sleap
 
                         # convert ip_string to shell array
                         IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
