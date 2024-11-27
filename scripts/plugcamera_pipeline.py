@@ -1,5 +1,6 @@
 import digflow as dig
 import argparse
+import scyjava
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='plugcamera pipeline: transferring data from RPis to NEMO, initial processing')

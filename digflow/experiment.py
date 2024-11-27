@@ -11,6 +11,7 @@ import random
 import json
 import csv
 import sys
+import scyjava
 
 class Experiment:
     def __init__(self, exp_type, experiment_name='', rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True, sleap_paths=None, skel_parts=None):
