@@ -121,7 +121,7 @@ class Experiment:
             for folder in [self.save_path, self.raw_data_path, self.mp4_path]:
                 os.makedirs(folder, exist_ok=True)
 
-        elif exp == 'pupae':
+        if exp == 'pupae':
             import scyjava
             import cv2
             import imagej
@@ -148,7 +148,7 @@ class Experiment:
             for folder in [self.save_path, self.raw_data_path, self.predictions_path]:
                 os.makedirs(folder, exist_ok=True)
 
-        elif exp == 'sleap':
+        if exp == 'sleap':
             self.predictions_path = self.sleap_paths[0]
             self.video_path = self.sleap_paths[1]
             self.centroid_path = self.sleap_paths[2]
@@ -202,7 +202,7 @@ class Experiment:
     def pc_pipeline_test(self): # testing pipeline, changes depending on what needs testing
         print("Running self.setup_experiment_paths('pupae')...")
         self.setup_experiment_paths('pupae')
-        print("Completed self.setup_experiment_paths('pupae')...")
+        print("Completed self.setup_experiment_paths('pupae')...\n")
 
         print("Running self.sleap_prediction('still')...")
         self.sleap_prediction('still')          # infers pupae locations using pretrained SLEAP model
