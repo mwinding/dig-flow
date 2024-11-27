@@ -12,6 +12,9 @@ import json
 import csv
 import sys
 import scyjava
+import cv2
+import imagej
+from PIL import Image
 
 class Experiment:
     def __init__(self, exp_type, experiment_name='', rotator_IP='10.7.192.163', conditions=None, rig_list=None, ip_path='ip_addresses.csv', remove_files=True, sleap_paths=None, skel_parts=None):
@@ -103,11 +106,6 @@ class Experiment:
 
     def setup_experiment_paths(self, exp):
         if exp == 'plugcamera':
-            import scyjava
-            import cv2
-            import imagej
-            from PIL import Image
-
             self.load_ip_data()
             self.process_ips_of_interest()
             self.generate_experiment_csv()
@@ -123,11 +121,6 @@ class Experiment:
                 os.makedirs(folder, exist_ok=True)
 
         if exp == 'pupae':
-            import scyjava
-            import cv2
-            import imagej
-            from PIL import Image
-
             self.load_ip_data()
             self.process_ips_of_interest()
             self.generate_experiment_csv()
