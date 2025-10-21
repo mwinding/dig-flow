@@ -15,9 +15,9 @@ class Design:
         if file==None: self.conditions = list(pd.read_csv(conditions, header=0).conditions)
 
         if sample_size!=None:
-            if sample_size % 3 == 0:
-                self.sample_size = int(sample_size / 3)  
-            else: raise ValueError(f"Sample_size must be divisible by 3\nsample_size:{sample_size} is not divisible by 3")
+            if sample_size % 6 == 0:
+                self.sample_size = int(sample_size / 6) # each experiment has 6 replicates, there are collections on Tuesday evening, Wednesday, Wednesday evening, Thursday, Thursday evening, Friday
+            else: raise ValueError(f"Sample_size must be divisible by 3\nsample_size:{sample_size} is not divisible by 6")
 
         self.file = file
         self.amendment = None
@@ -96,7 +96,7 @@ class Design:
         random.shuffle(self.conditions)
         self.all_exps = self.conditions * self.sample_size # add repeats after the conditions are shuffled, so they only repeat after each condition occurs once, twice, etc.
         self.remaining_exps = self.all_exps
-        # note that self.all_exps and self.remaining_exps refer to sets of experiments. Here experiment has by default 3 replicates
+        # note that self.all_exps and self.remaining_exps refer to sets of experiments. Here experiment has by default 6 replicates
 
     def check_if_monday(self, wc_date):
         monday_date = datetime.strptime(wc_date, "%d-%m-%Y")
@@ -109,22 +109,25 @@ class Design:
         # Convert the Monday date string to a datetime object
         monday_date = datetime.strptime(self.wc_date, "%d-%m-%Y")
 
-        if date_type=='collection':
+        ''' # we don't do virgin collection dates anymore
+        if date_type=='collection': # meaning when virgins are collected?
             # Calculate Tuesday and Wednesday by adding 1 and 2 days to Monday
             tuesday_date = monday_date + timedelta(days=1)
             wednesday_date = monday_date + timedelta(days=2)
-            
+
             # Return the dates as strings in the 'YYYY-MM-DD' format
             return tuesday_date.strftime("%d-%m-%Y"), wednesday_date.strftime("%d-%m-%Y")
+        '''
 
-        if date_type=='staging':
-            # Calculate next Wed, Th, Fri by adding 9, 10, 11 days to Monday
-            next_wed_date = monday_date + timedelta(days=9)
-            next_th_date = monday_date + timedelta(days=10)
-            next_fri_date = monday_date + timedelta(days=11)
+        if date_type=='staging': # meaning when larvae are staged for experiments
+            
+            tues = monday_date + timedelta(days=1)
+            wed = monday_date + timedelta(days=2)
+            thurs = monday_date + timedelta(days=3)
+            fri = monday_date + timedelta(days=4)
 
             # Return the dates as strings in the 'YYYY-MM-DD' format
-            return next_wed_date.strftime("%d-%m-%Y"), next_th_date.strftime("%d-%m-%Y"), next_fri_date.strftime("%d-%m-%Y")
+            return tues.strftime("%d-%m-%Y"), wed.strftime("%d-%m-%Y"), thurs.strftime("%d-%m-%Y"), fri.strftime("%d-%m-%Y")
 
     def add_vials(self, count, day, person):
         new_row = {'person': person,
