@@ -1,5 +1,5 @@
+#!/usr/bin/env python3
 import pandas as pd
-import numpy as np
 import os
 import argparse
 import random
@@ -66,32 +66,54 @@ def link_conditions_with_locations(conditions: list[str], stock_df: pd.DataFrame
     merged = exp_df.merge(stock_df, on='condition', how='left')
     return dict(zip(merged['condition'], merged['location']))
 
-def build_shelves_df(dates, inc_conds, controls_per_collection, condition_locations):
+def make_fixed_layout(base_conditions, controls_per_collection):
+    """Create a single, fixed layout (conditions + controls) for an incubator (≤ 24 rows total)."""
+    layout = base_conditions.copy()
+    layout.extend(['control'] * controls_per_collection)
+    # At most 24 because len(base_conditions) ≤ 24 - controls_per_collection
+    random.shuffle(layout)  # different each run
+    return layout
+
+def build_shelves_df(dates, inc_layout, condition_locations):
+    """
+    Build shelves with:
+      - fixed per-incubator condition+control layout reused for every date
+      - per-rack random permutation per incubator to avoid shelf collisions within a rack
+      - if there are fewer than 24 items, we just emit fewer rows (no blank rows)
+    """
     cols = ['experimenter','collector','incubator','shelf','rack','plugcamera',
             'condition','location','staging_date','amendments','comments','staging_times']
     df = pd.DataFrame(columns=cols)
 
+    num_racks = (len(dates) + 1) // 2  # pairs of dates -> racks (6 dates -> 3 racks)
+
+    # Precompute a random shelf permutation per rack *and* per incubator:
+    # rack_shelf_map[incubator][rack_idx] = [shelf_for_first_date, shelf_for_second_date]
+    rack_shelf_map = {
+        inc: {r: random.sample([1, 2], 2) for r in range(num_racks)}
+        for inc in (1, 2)
+    }
+
     for idx, date in enumerate(dates):
-        is_range = '-' in date  # e.g. "15-16/10/2024"
-        shelf_num = 2 if is_range else 1
-        rack_num  = (idx // 2) + 1
+        rack_idx = idx // 2          # 0,0,1,1,2,2
+        pos_in_pair = idx % 2        # 0 for first date in the rack, 1 for second
+        rack_num  = rack_idx + 1     # human-readable: 1..num_racks
 
         # For this date: incubator 1 first, then incubator 2
         for incubator in (1, 2):
-            shelf_conditions = inc_conds[incubator].copy()
-            for _ in range(controls_per_collection):
-                shelf_conditions.append('control')
-            random.shuffle(shelf_conditions)
+            shelf_num = rack_shelf_map[incubator][rack_idx][pos_in_pair]
+            shelf_conditions = inc_layout.get(incubator, [])
 
+            # Emit only as many rows as we actually have (no blanks)
             rows = []
             for condition in shelf_conditions:
                 location = condition_locations.get(condition, '')
                 rows.append({
                     'experimenter': '',
                     'collector': '',
-                    'incubator': incubator,
-                    'shelf': shelf_num,
-                    'rack': rack_num,
+                    'incubator': f'incubator-{incubator}',
+                    'shelf': f'shelf-{shelf_num}',
+                    'rack': f'rack-{rack_num}',
                     'plugcamera': '',
                     'condition': condition,
                     'location': location,
@@ -100,7 +122,8 @@ def build_shelves_df(dates, inc_conds, controls_per_collection, condition_locati
                     'comments': '',
                     'staging_times': ''
                 })
-            df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
+            if rows:
+                df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
 
     return df
 
@@ -112,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--date', dest='wc_date', type=str, required=True,
                         help='date of the Monday when the week starts, format: DD-MM-YYYY')
     parser.add_argument('-s', '--sample-size', dest='sample_size', type=int, required=True,
-                        help='number of times each condition is repeated (must be divisible by 6)')
+        help='number of times each condition is repeated (must be divisible by 6)')
     parser.add_argument('-c', '--controls-per-collection', dest='controls_per_collection', type=int, required=True,
                         help='number of control experiments to include per collection day')
     parser.add_argument('--conditions-df', dest='conditions_df', type=str, required=True,
@@ -133,37 +156,39 @@ if __name__ == "__main__":
     os.makedirs(save_path, exist_ok=True)
 
     # Load inputs
-    random.seed(42)
     conditions_list = load_conditions(args.conditions)
     stock_df = load_stock_df(args.conditions_df)
     condition_locations = link_conditions_with_locations(conditions_list, stock_df)
 
     # Build weekly plan
     dates = calculate_dates(args.wc_date)
-    needed_per_inc = 24 - args.controls_per_collection  # e.g. 23 when c=1
+    needed_per_inc = 24 - args.controls_per_collection  # target count per incubator (conditions only)
 
-    # Shuffle and expand once; allocate 23 to each incubator
+    # Shuffle and expand once
     pool = conditions_list.copy()
     random.shuffle(pool)
     expanded = pool * repeats_factor
 
-    if len(expanded) < needed_per_inc * 2:
-        raise ValueError(
-            f"Not enough conditions for two incubators this week. Need {needed_per_inc*2}, "
-            f"have {len(expanded)} (unique={len(conditions_list)}, repeats_factor={repeats_factor})."
-        )
+    # Soft allocation: give as many as possible (no crash if short)
+    inc1_count = min(needed_per_inc, len(expanded))
+    inc1 = expanded[:inc1_count]
+    rem_after_inc1 = expanded[inc1_count:]
 
-    inc_conds = {
-        1: expanded[:needed_per_inc],
-        2: expanded[needed_per_inc:needed_per_inc*2],
+    inc2_count = min(needed_per_inc, len(rem_after_inc1))
+    inc2 = rem_after_inc1[:inc2_count]
+    remaining_exps = rem_after_inc1[inc2_count:]
+
+    completed_exps = inc1 + inc2
+
+    # Fixed layouts (conditions + controls) reused across all dates — shuffled anew each run
+    inc_layout = {
+        1: make_fixed_layout(inc1, args.controls_per_collection),
+        2: make_fixed_layout(inc2, args.controls_per_collection),
     }
-    remaining_exps = expanded[needed_per_inc*2:]
-    completed_exps = inc_conds[1] + inc_conds[2]
 
     shelves_df = build_shelves_df(
         dates=dates,
-        inc_conds=inc_conds,
-        controls_per_collection=args.controls_per_collection,
+        inc_layout=inc_layout,
         condition_locations=condition_locations
     )
     shelves_df.to_csv(os.path.join(save_path, 'shelves.csv'), index=False)
