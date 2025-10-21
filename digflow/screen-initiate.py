@@ -178,8 +178,6 @@ if __name__ == "__main__":
     inc2 = rem_after_inc1[:inc2_count]
     remaining_exps = rem_after_inc1[inc2_count:]
 
-    completed_exps = inc1 + inc2
-
     # Fixed layouts (conditions + controls) reused across all dates — shuffled anew each run
     inc_layout = {
         1: make_fixed_layout(inc1, args.controls_per_collection),
@@ -193,11 +191,16 @@ if __name__ == "__main__":
     )
     shelves_df.to_csv(os.path.join(save_path, 'shelves.csv'), index=False)
 
+    # --- completed as a dict of N counts for each condition (start at 0) ---
+    completed_counts = {cond: 0 for cond in conditions_list}
+    replicates_per_experiment = 6  # literal N for one experiment (Tue night..Fri spread)
+
     # Write experiment.json for future weeks
     experiment_dict = {
         'conditions': conditions_list,
-        'remaining': remaining_exps,
-        'completed': completed_exps,
+        'remaining': remaining_exps,                 # queue of future *experiments*
+        'completed_counts': completed_counts,        # per-condition literal N completed so far
+        'replicates_per_experiment': replicates_per_experiment,
         'controls_per_collection': args.controls_per_collection,
         'condition_locations': condition_locations
     }
