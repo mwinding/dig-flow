@@ -2,3 +2,5 @@ output
 .vscode
 .DS_Store
 conditions.csv
+fly-stocks.csv
+inactivation-conditions.csv
