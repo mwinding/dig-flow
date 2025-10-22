@@ -70,7 +70,6 @@ def make_fixed_layout(base_conditions, controls_per_collection):
     """Create a single, fixed layout (conditions + controls) for an incubator (≤ 24 rows total)."""
     layout = base_conditions.copy()
     layout.extend(['control'] * controls_per_collection)
-    # At most 24 because len(base_conditions) ≤ 24 - controls_per_collection
     random.shuffle(layout)  # different each run
     return layout
 
@@ -85,26 +84,25 @@ def build_shelves_df(dates, inc_layout, condition_locations):
             'condition','location','staging_date','amendments','comments','staging_times']
     df = pd.DataFrame(columns=cols)
 
-    num_racks = (len(dates) + 1) // 2  # pairs of dates -> racks (6 dates -> 3 racks)
+    num_racks = (len(dates) + 1) // 2  # 6 dates -> 3 racks
 
-    # Precompute a random shelf permutation per rack *and* per incubator:
-    # rack_shelf_map[incubator][rack_idx] = [shelf_for_first_date, shelf_for_second_date]
+    # random shelf order per rack per incubator
     rack_shelf_map = {
         inc: {r: random.sample([1, 2], 2) for r in range(num_racks)}
         for inc in (1, 2)
     }
 
     for idx, date in enumerate(dates):
-        rack_idx = idx // 2          # 0,0,1,1,2,2
-        pos_in_pair = idx % 2        # 0 for first date in the rack, 1 for second
-        rack_num  = rack_idx + 1     # human-readable: 1..num_racks
+        rack_idx = idx // 2
+        pos_in_pair = idx % 2
+        rack_num  = rack_idx + 1
 
-        # For this date: incubator 1 first, then incubator 2
         for incubator in (1, 2):
             shelf_num = rack_shelf_map[incubator][rack_idx][pos_in_pair]
             shelf_conditions = inc_layout.get(incubator, [])
+            if not shelf_conditions:
+                continue
 
-            # Emit only as many rows as we actually have (no blanks)
             rows = []
             for condition in shelf_conditions:
                 location = condition_locations.get(condition, '')
@@ -134,10 +132,14 @@ if __name__ == "__main__":
                         help='path to save folder for inactivation conditions')
     parser.add_argument('-d', '--date', dest='wc_date', type=str, required=True,
                         help='date of the Monday when the week starts, format: DD-MM-YYYY')
-    parser.add_argument('-s', '--sample-size', dest='sample_size', type=int, required=True,
-        help='number of times each condition is repeated (must be divisible by 6)')
+    parser.add_argument('-n', '--sample-size', dest='sample_size', type=int, required=True,
+                        help='TOTAL target replicates per condition (must be divisible by 6, e.g. 18)')
     parser.add_argument('-c', '--controls-per-collection', dest='controls_per_collection', type=int, required=True,
                         help='number of control experiments to include per collection day')
+    parser.add_argument('-p', '--per-incubator-conditions', dest='per_incubator_conditions',
+                        type=int, default=None,
+                        help='Number of CONDITIONS per incubator (controls are added on top). '
+                             'Default: 24 - controls_per_collection')
     parser.add_argument('--conditions-df', dest='conditions_df', type=str, required=True,
                         help='path to conditions locations CSV (stock table with ID/Tray/Location)')
     parser.add_argument('--conditions', dest='conditions', type=str, required=True,
@@ -149,10 +151,11 @@ if __name__ == "__main__":
     check_monday(args.wc_date)
     if args.sample_size % 6 != 0:
         raise ValueError(f"sample_size must be divisible by 6; got {args.sample_size}")
-    repeats_factor = args.sample_size // 6
+    repeats_factor = args.sample_size // 6  # number of experiments per condition
 
-    # Prepare output path
-    save_path = os.path.join(args.file_path, args.wc_date)
+    # Prepare output path (folder name as YYYY-MM-DD)
+    folder_date = datetime.strptime(args.wc_date, "%d-%m-%Y").strftime("%Y-%m-%d")
+    save_path = os.path.join(args.file_path, folder_date)
     os.makedirs(save_path, exist_ok=True)
 
     # Load inputs
@@ -162,7 +165,8 @@ if __name__ == "__main__":
 
     # Build weekly plan
     dates = calculate_dates(args.wc_date)
-    needed_per_inc = 24 - args.controls_per_collection  # target count per incubator (conditions only)
+    default_per_inc = 24 - args.controls_per_collection  # target count per incubator (conditions only)
+    per_inc = args.per_incubator_conditions if args.per_incubator_conditions is not None else default_per_inc
 
     # Shuffle and expand once
     pool = conditions_list.copy()
@@ -170,11 +174,11 @@ if __name__ == "__main__":
     expanded = pool * repeats_factor
 
     # Soft allocation: give as many as possible (no crash if short)
-    inc1_count = min(needed_per_inc, len(expanded))
+    inc1_count = min(per_inc, len(expanded))
     inc1 = expanded[:inc1_count]
     rem_after_inc1 = expanded[inc1_count:]
 
-    inc2_count = min(needed_per_inc, len(rem_after_inc1))
+    inc2_count = min(per_inc, len(rem_after_inc1))
     inc2 = rem_after_inc1[:inc2_count]
     remaining_exps = rem_after_inc1[inc2_count:]
 
@@ -193,16 +197,18 @@ if __name__ == "__main__":
 
     # --- completed as a dict of N counts for each condition (start at 0) ---
     completed_counts = {cond: 0 for cond in conditions_list}
-    replicates_per_experiment = 6  # literal N for one experiment (Tue night..Fri spread)
+    replicates_per_experiment = 6  # literal N for one experiment
 
     # Write experiment.json for future weeks
     experiment_dict = {
         'conditions': conditions_list,
-        'remaining': remaining_exps,                 # queue of future *experiments*
-        'completed_counts': completed_counts,        # per-condition literal N completed so far
-        'replicates_per_experiment': replicates_per_experiment,
+        'remaining': remaining_exps,                     # queue of future *experiments*
+        'completed_counts': completed_counts,            # per-condition literal N completed so far
+        'replicates_per_experiment': replicates_per_experiment,  # per experiment (usually 6)
+        'target_replicates_total': args.sample_size,     # <-- overall N target per condition (e.g., 18)
         'controls_per_collection': args.controls_per_collection,
-        'condition_locations': condition_locations
+        'condition_locations': condition_locations,
+        'failure_counts': {}                             # <-- renamed from failure_ledger
     }
     with open(os.path.join(save_path, 'experiment.json'), 'w') as f:
         json.dump(experiment_dict, f, indent=4)

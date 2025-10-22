@@ -7,22 +7,30 @@ from datetime import datetime, timedelta
 import pandas as pd
 import random
 
-DATE_RE = re.compile(r"^\d{2}-\d{2}-\d{4}$")  # DD-MM-YYYY
+# Folders are now YYYY-MM-DD
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD
 
 # ----------------- date helpers -----------------
-def parse_monday(date_str: str) -> datetime:
-    d = datetime.strptime(date_str, "%d-%m-%Y")
+def parse_monday(date_str_folder: str) -> datetime:
+    """Parse a Monday in folder format YYYY-MM-DD."""
+    d = datetime.strptime(date_str_folder, "%Y-%m-%d")
     if d.weekday() != 0:
-        raise ValueError(f"{date_str} is not a Monday (DD-MM-YYYY).")
+        raise ValueError(f"{date_str_folder} is not a Monday (YYYY-MM-DD).")
     return d
 
-def format_monday(d: datetime) -> str:
+def format_ddmmyyyy(d: datetime) -> str:
+    """Return DD-MM-YYYY for human-facing/staging helper inputs."""
     return d.strftime("%d-%m-%Y")
 
-def calculate_dates(wc_date_str: str):
+def format_yyyymmdd(d: datetime) -> str:
+    """Return YYYY-MM-DD for folder names."""
+    return d.strftime("%Y-%m-%d")
+
+def calculate_dates(wc_date_str_ddmmyyyy: str):
     """Return the 6 staging 'dates' as strings:
-       Tue–Wed (range), Wed, Wed–Thu (range), Thu, Thu–Fri (range), Fri."""
-    monday = datetime.strptime(wc_date_str, "%d-%m-%Y")
+       Tue–Wed (range), Wed, Wed–Thu (range), Thu, Thu–Fri (range), Fri.
+       Input: DD-MM-YYYY (Monday)."""
+    monday = datetime.strptime(wc_date_str_ddmmyyyy, "%d-%m-%Y")
 
     def fmt_range(a: datetime, b: datetime) -> str:
         if b < a:
@@ -63,6 +71,15 @@ def load_experiment(exp_path: str) -> dict:
     data["replicates_per_experiment"] = int(data["replicates_per_experiment"])
     if not isinstance(data["completed_counts"], dict):
         raise ValueError("'completed_counts' must be a dict of condition -> int")
+    # Optional fields (new name)
+    if "failure_counts" not in data or not isinstance(data["failure_counts"], dict):
+        data["failure_counts"] = {}
+    # NEW: overall target per condition, if present
+    if "target_replicates_total" in data:
+        try:
+            data["target_replicates_total"] = int(data["target_replicates_total"])
+        except Exception:
+            pass
     return data
 
 def list_date_subfolders(root: str):
@@ -71,7 +88,7 @@ def list_date_subfolders(root: str):
         full = os.path.join(root, entry)
         if os.path.isdir(full) and DATE_RE.match(entry):
             subs.append(entry)
-    subs.sort(key=lambda s: datetime.strptime(s, "%d-%m-%Y"))
+    subs.sort(key=lambda s: datetime.strptime(s, "%Y-%m-%d"))
     return subs
 
 def rebuild_master_df(root: str, date_folders):
@@ -86,12 +103,14 @@ def rebuild_master_df(root: str, date_folders):
         df = df.copy()
         df["condition"] = df["condition"].astype(str).str.strip()
         am = df["amendments"]
+        # normalise booleans for -1 flags
         df["_is_neg1"] = (am == -1) | (am.astype(str).str.strip() == "-1")
-        df["_week"] = d
+        df["_is_success"] = (~df["_is_neg1"]) & (df["condition"].str.lower() != "control")
+        df["_week"] = d  # now YYYY-MM-DD
         frames.append(df)
     if frames:
         return pd.concat(frames, ignore_index=True)
-    return pd.DataFrame(columns=["condition", "amendments", "_is_neg1", "_week"])
+    return pd.DataFrame(columns=["condition", "amendments", "_is_neg1", "_is_success", "_week"])
 
 def write_master_files(root: str, current_week_dir: str, master_df: pd.DataFrame, root_name: str):
     """Write master to ROOT and a timestamped snapshot in CURRENT week."""
@@ -106,35 +125,23 @@ def write_master_files(root: str, current_week_dir: str, master_df: pd.DataFrame
 
     return root_master_path, snapshot_path
 
-def failed_conditions_from_current_week(current_shelves_path: str):
-    """Only read CURRENT week's shelves.csv and return unique conditions with amendments == -1 (excluding 'control')."""
-    df = pd.read_csv(current_shelves_path)
-    if "condition" not in df.columns or "amendments" not in df.columns:
-        raise ValueError(f"{current_shelves_path} must contain 'condition' and 'amendments' columns.")
-    conds = df["condition"].astype(str).str.strip()
-    am = df["amendments"]
-    is_neg1 = (am == -1) | (am.astype(str).str.strip() == "-1")
-    failed = conds[is_neg1].dropna().astype(str).str.strip()
-    failed = failed[failed.str.lower() != "control"]  # ignore literal control rows
-    return failed.drop_duplicates().tolist()
-
-def success_counts_from_current_week(current_shelves_path: str):
-    """
-    Return dict {condition: successful_replicates_this_week}, counting rows where amendments != -1
-    and condition != 'control'. This increments literal N by how many replicates succeeded.
-    """
-    df = pd.read_csv(current_shelves_path)
-    if "condition" not in df.columns or "amendments" not in df.columns:
-        raise ValueError(f"{current_shelves_path} must contain 'condition' and 'amendments' columns.")
-    df = df.copy()
-    df["condition"] = df["condition"].astype(str).str.strip()
-    is_success = (~((df["amendments"] == -1) | (df["amendments"].astype(str).str.strip() == "-1"))) & (
-        df["condition"].str.lower() != "control"
-    )
-    succ = df[is_success]
-    if succ.empty:
+def cumulative_success_counts(master_df: pd.DataFrame) -> dict:
+    """Return total successful replicates per condition across ALL weeks."""
+    if master_df.empty:
         return {}
-    return succ.groupby("condition").size().to_dict()
+    ok = master_df[master_df["_is_success"]]
+    if ok.empty:
+        return {}
+    return ok.groupby("condition").size().to_dict()
+
+def cumulative_failure_counts(master_df: pd.DataFrame) -> dict:
+    """Return total (-1) counts per condition across ALL weeks (excluding control rows)."""
+    if master_df.empty:
+        return {}
+    fail = master_df[(master_df["_is_neg1"]) & (master_df["condition"].str.lower() != "control")]
+    if fail.empty:
+        return {}
+    return fail.groupby("condition").size().to_dict()
 
 def select_next_week(remaining: list, per_inc: int):
     """Take next per_inc for incubator 1, then per_inc for incubator 2 (soft-fill if short)."""
@@ -152,7 +159,7 @@ def write_timestamped_experiment(dir_path: str, payload: dict) -> str:
         json.dump(payload, f, indent=4)
     return out_path
 
-# ----------------- shelves-building (your logic) -----------------
+# ----------------- shelves-building -----------------
 def make_fixed_layout(base_conditions, controls_per_collection):
     """Create a single, fixed layout (conditions + controls) for an incubator (≤ 24 rows total)."""
     layout = base_conditions.copy()
@@ -181,7 +188,7 @@ def build_shelves_df(dates, inc_layout, condition_locations):
 
     for idx, date in enumerate(dates):
         rack_idx = idx // 2          # 0,0,1,1,2,2
-        pos_in_pair = idx % 2        # 0 first date in rack, 1 second
+        pos_in_pair = idx % 2        # 0 first date in the rack, 1 second
         rack_num  = rack_idx + 1
 
         for incubator in (1, 2):
@@ -213,7 +220,7 @@ def build_shelves_df(dates, inc_layout, condition_locations):
     return df
 
 # ----------------- completion check -----------------
-def all_conditions_complete(conditions, completed_counts, target_reps):
+def all_conditions_complete(completed_counts: dict, target_reps: int, conditions: list[str]) -> bool:
     """True if every condition has completed_counts >= target_reps."""
     for c in conditions:
         if completed_counts.get(c, 0) < target_reps:
@@ -223,17 +230,21 @@ def all_conditions_complete(conditions, completed_counts, target_reps):
 # ----------------- main -----------------
 def main():
     parser = argparse.ArgumentParser(
-        description="Roll forward one week: update master (root+snapshot), apply CURRENT week outcomes (+/-1), pick next batch, create NEXT week's shelves.csv + experiment.json, and maintain top-level canonical experiment.json."
+        description="Weekly roll-forward: rebuild master, incorporate late -1 without double-counting, recompute successes (completed_counts), pick next batch, and write next week."
     )
-    parser.add_argument("-r", "--root", required=True, help="Root folder containing dated subfolders (e.g., test-folder)")
-    parser.add_argument("-d", "--date", required=True, help="Most recent date folder name (DD-MM-YYYY), e.g., 13-10-2025")
-    parser.add_argument("--next-date", default=None, help="Override next week folder (DD-MM-YYYY). Defaults to current Monday + 7 days.")
+    parser.add_argument("-f", "--folder", required=True, help="Root folder containing dated subfolders (e.g., test-folder)")
+    parser.add_argument("-d", "--date", required=True, help="Most recent date folder name (YYYY-MM-DD), e.g., 2025-10-13")
+    parser.add_argument("--next-date", default=None, help="Override next week folder (YYYY-MM-DD). Defaults to current Monday + 7 days.")
     parser.add_argument("--master-name", default="master-file.csv", help="Filename for the master CSV at root (default: master-file.csv)")
     parser.add_argument("--emit-next-picks", action="store_true", help="Also write next_conditions.json in the NEXT week folder")
+    parser.add_argument("-p", "--per-incubator-conditions", dest="per_incubator_conditions",
+                        type=int, default=None,
+                        help="Number of CONDITIONS per incubator for NEXT week (controls added on top). "
+                             "Default: 24 - controls_per_collection from experiment.json")
     args = parser.parse_args()
 
     # Paths & dates
-    root = os.path.abspath(args.root)
+    root = os.path.abspath(args.folder)
     current_week_dir = os.path.join(root, args.date)
     if not os.path.isdir(current_week_dir):
         raise FileNotFoundError(f"Date folder not found: {current_week_dir}")
@@ -244,8 +255,11 @@ def main():
     else:
         next_monday = current_monday + timedelta(days=7)
 
-    next_date_str = format_monday(next_monday)
-    next_week_dir = os.path.join(root, next_date_str)
+    # Folder name (YYYY-MM-DD) and display string (DD-MM-YYYY)
+    next_date_folder = format_yyyymmdd(next_monday)
+    next_date_display = format_ddmmyyyy(next_monday)
+
+    next_week_dir = os.path.join(root, next_date_folder)
     os.makedirs(next_week_dir, exist_ok=True)
 
     exp_path = os.path.join(current_week_dir, "experiment.json")
@@ -258,52 +272,44 @@ def main():
     # 1) Load experiment.json from CURRENT week
     exp = load_experiment(exp_path)
 
-    # Freeze the pre-update state for the completion check
-    exp_before_updates = {
-        "conditions": list(exp["conditions"]),
-        "completed_counts": dict(exp["completed_counts"]),
-        "replicates_per_experiment": int(exp["replicates_per_experiment"]),
-    }
-
     controls_per_collection = exp["controls_per_collection"]
-    per_inc = 24 - controls_per_collection  # 23 if 1 control
+    default_per_inc = 24 - controls_per_collection
+    per_inc = args.per_incubator_conditions if args.per_incubator_conditions is not None else default_per_inc
 
     # 2) Rebuild master (root) + snapshot (current week)
-    date_folders = list_date_subfolders(root)
+    date_folders = list_date_subfolders(root)  # now matches YYYY-MM-DD folders
     master_df = rebuild_master_df(root, date_folders)
     root_master_path, snapshot_path = write_master_files(root, current_week_dir, master_df, args.master_name)
 
-    # 3) Apply CURRENT week outcomes:
-    #    (a) append unique failures (-1) once each to 'remaining' (ignoring 'control')
-    failed_current_week = failed_conditions_from_current_week(shelves_path)
-    exp["remaining"].extend(failed_current_week)
+    # 3) Recompute successes (literal N) across ALL weeks
+    success_totals = cumulative_success_counts(master_df)
+    new_completed_counts = {c: int(success_totals.get(c, 0)) for c in exp["conditions"]}
 
-    #    (b) increment completed_counts by number of successes per condition this week
-    succ_counts = success_counts_from_current_week(shelves_path)
-    for cond, add_n in succ_counts.items():
-        exp["completed_counts"][cond] = int(exp["completed_counts"].get(cond, 0)) + int(add_n)
+    # 4) Late-entered failures: compute cumulative failures and append ONLY the delta since last run
+    prev_failure_counts = exp.get("failure_counts", {}) or {}
+    prev_failure_counts = {k: int(v) for k, v in prev_failure_counts.items()}
+    failure_totals = cumulative_failure_counts(master_df)  # cumulative across all time
 
-    # 4) Select next batch (soft-fill if short)
-    inc1, inc2, new_remaining = select_next_week(exp["remaining"], per_inc)
+    newly_appended = {}
+    remaining = list(exp["remaining"])
+    for cond, total_fails in failure_totals.items():
+        prev = prev_failure_counts.get(cond, 0)
+        delta = int(total_fails) - int(prev)
+        if delta > 0:
+            remaining.extend([cond] * delta)
+            newly_appended[cond] = delta
+    new_failure_counts = {**prev_failure_counts, **{k: int(v) for k, v in failure_totals.items()}}
+
+    # 5) Select next batch (soft-fill if short)
+    inc1, inc2, new_remaining = select_next_week(remaining, per_inc)
     next_total = len(inc1) + len(inc2)
-
-    # 5) Write a timestamped rollback experiment.json in CURRENT week (post-update state)
-    rollback_payload = {
-        "conditions": exp["conditions"],
-        "remaining": new_remaining,
-        "completed_counts": exp["completed_counts"],
-        "replicates_per_experiment": exp["replicates_per_experiment"],
-        "controls_per_collection": controls_per_collection,
-        "condition_locations": exp["condition_locations"],
-    }
-    rollback_exp_path = write_timestamped_experiment(current_week_dir, rollback_payload)
 
     # 6) Build NEXT week's shelves.csv
     inc_layout = {
         1: make_fixed_layout(inc1, controls_per_collection),
         2: make_fixed_layout(inc2, controls_per_collection),
     }
-    next_dates = calculate_dates(next_date_str)
+    next_dates = calculate_dates(next_date_display)  # calculate_dates expects DD-MM-YYYY
     shelves_df = build_shelves_df(
         dates=next_dates,
         inc_layout=inc_layout,
@@ -312,53 +318,68 @@ def main():
     shelves_csv_path = os.path.join(next_week_dir, "shelves.csv")
     shelves_df.to_csv(shelves_csv_path, index=False)
 
-    # 7) Write NEXT week's canonical experiment.json + timestamped backup
-    next_payload = rollback_payload  # carry forward state after picking
+    # Determine the correct target for completion check
+    if "target_replicates_total" in exp:
+        target_total = int(exp["target_replicates_total"])
+        fallback_note = None
+    else:
+        target_total = int(exp["replicates_per_experiment"])  # fallback (usually 6)
+        fallback_note = "(completion target fallback to replicates_per_experiment; add 'target_replicates_total' to experiment.json for strict check)"
+
+    # 7) Compose post-update experiment payload (state to carry forward)
+    next_payload = {
+        "conditions": exp["conditions"],
+        "remaining": new_remaining,
+        "completed_counts": new_completed_counts,              # recomputed literal N
+        "replicates_per_experiment": exp["replicates_per_experiment"],
+        "controls_per_collection": controls_per_collection,
+        "condition_locations": exp["condition_locations"],
+        "failure_counts": new_failure_counts,                  # renamed from failure_ledger
+    }
+    if "target_replicates_total" in exp:
+        next_payload["target_replicates_total"] = target_total
+
+    # 8) Write NEXT week's canonical experiment.json + timestamped backups
     next_exp_canonical = os.path.join(next_week_dir, "experiment.json")
     with open(next_exp_canonical, "w") as f:
         json.dump(next_payload, f, indent=4)
     next_exp_backup = write_timestamped_experiment(next_week_dir, next_payload)
+    rollback_exp_path = write_timestamped_experiment(current_week_dir, next_payload)
 
-    # 8) Update TOP-LEVEL canonical experiment.json (always current)
+    # 9) Update TOP-LEVEL canonical experiment.json (always current)
     top_level_exp = os.path.join(root, "experiment.json")
     with open(top_level_exp, "w") as f:
         json.dump(next_payload, f, indent=4)
 
-    # 9) Optional next_picks
+    # 10) Optional next_picks
     if args.emit_next_picks:
         next_picks = {
-            "week_commencing": next_date_str,
+            "week_commencing": next_date_display,  # human-friendly DD-MM-YYYY
             "per_incubator_target": per_inc,
             "incubator1": inc1,
             "incubator2": inc2,
             "picked_total": next_total,
-            "failed_conditions_appended_from_current_week": failed_current_week,
-            "success_counts_this_week": succ_counts,
+            "new_failures_appended_this_run": newly_appended,
             "master_csv_root": root_master_path,
             "master_csv_snapshot": snapshot_path
         }
         with open(os.path.join(next_week_dir, "next_conditions.json"), "w") as f:
             json.dump(next_picks, f, indent=4)
 
-    # 10) Prints + completion notice
+    # 11) Prints + completion notice (based on recomputed totals)
     print(f"\nMaster (root):         {root_master_path}")
     print(f"Master snapshot (wk):  {snapshot_path}")
-    print(f"Current week failures appended: {len(failed_current_week)}")
-    print(f"Current week successes counted: {sum(succ_counts.values()) if succ_counts else 0}")
+    print(f"Newly appended failures (delta): {sum(newly_appended.values())} across {len(newly_appended)} condition(s).")
     print(f"Next batch picked: incubator1={len(inc1)}, incubator2={len(inc2)} (target {per_inc} each).")
-    print(f"Rollback experiment (current week): {rollback_exp_path}")
     print(f"NEXT week folder:      {next_week_dir}")
     print(f"  - shelves.csv:       {shelves_csv_path}")
     print(f"  - experiment.json:   {next_exp_canonical}")
     print(f"Top-level experiment.json: {top_level_exp}")
+    if fallback_note:
+        print(fallback_note)
 
-    # Print the simple celebration ONLY if the pre-update experiment.json
-    # already shows everything complete (no dependence on current shelves.csv)
-    if all_conditions_complete(
-        conditions=exp_before_updates["conditions"],
-        completed_counts=exp_before_updates["completed_counts"],
-        target_reps=exp_before_updates["replicates_per_experiment"]
-    ):
+    # Correct completion check (uses total target and recomputed counts)
+    if all_conditions_complete(new_completed_counts, target_total, exp["conditions"]):
         print("\n✨ EXPERIMENTS COMPLETE! ✨")
 
 if __name__ == "__main__":
