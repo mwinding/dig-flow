@@ -136,7 +136,7 @@ if __name__ == "__main__":
                         help='TOTAL target replicates per condition (must be divisible by 6, e.g. 18)')
     parser.add_argument('-c', '--controls-per-collection', dest='controls_per_collection', type=int, required=True,
                         help='number of control experiments to include per collection day')
-    parser.add_argument('-p', '--per-incubator-conditions', dest='per_incubator_conditions',
+    parser.add_argument('-nc', '--per-incubator-conditions', dest='per_incubator_conditions',
                         type=int, default=None,
                         help='Number of CONDITIONS per incubator (controls are added on top). '
                              'Default: 24 - controls_per_collection')

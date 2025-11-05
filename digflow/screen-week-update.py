@@ -237,7 +237,7 @@ def main():
     parser.add_argument("--next-date", default=None, help="Override next week folder (YYYY-MM-DD). Defaults to current Monday + 7 days.")
     parser.add_argument("--master-name", default="master-file.csv", help="Filename for the master CSV at root (default: master-file.csv)")
     parser.add_argument("--emit-next-picks", action="store_true", help="Also write next_conditions.json in the NEXT week folder")
-    parser.add_argument("-p", "--per-incubator-conditions", dest="per_incubator_conditions",
+    parser.add_argument("-nc", "--per-incubator-conditions", dest="per_incubator_conditions",
                         type=int, default=None,
                         help="Number of CONDITIONS per incubator for NEXT week (controls added on top). "
                              "Default: 24 - controls_per_collection from experiment.json")
