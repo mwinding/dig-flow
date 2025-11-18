@@ -24,10 +24,10 @@ def calculate_dates(wc_date_str: str):
             return f"{a.day}-{b.day:02d}/{a.month:02d}/{a.year}"
         return f"{a.strftime('%d/%m/%Y')}-{b.strftime('%d/%m/%Y')}"
 
-    tues  = monday + timedelta(days=1)
-    wed   = monday + timedelta(days=2)
-    thurs = monday + timedelta(days=3)
-    fri   = monday + timedelta(days=4)
+    tues  = monday + timedelta(days=1+7)
+    wed   = monday + timedelta(days=2+7)
+    thurs = monday + timedelta(days=3+7)
+    fri   = monday + timedelta(days=4+7)
 
     tues_night  = fmt_range(tues, wed)
     wed_night   = fmt_range(wed, thurs)
