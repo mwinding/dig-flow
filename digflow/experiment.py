@@ -218,6 +218,11 @@ class Experiment:
             os.makedirs(path, exist_ok=True)
         return(path)
 
+    def get_sequence_path(self, video_path, save_path=''):
+        base_path = save_path if save_path else self.raw_data_path
+        video_name = os.path.basename(video_path)
+        return os.path.join(base_path, f'{video_name}_sequence')
+
     def set_start_time(self, track_type):
         if(track_type=='transfer'): self.transfer_start_time = datetime.now()
         elif(track_type=='process'): self.process_start_time = datetime.now()
@@ -388,16 +393,17 @@ class Experiment:
             count += 1
 
         vidcap.release()
-    
-        os.makedirs(f'{save_path}/sequence/', exist_ok=True)
+
+        sequence_path = self.get_sequence_path(video_path, save_path)
+        os.makedirs(sequence_path, exist_ok=True)
         for i, frame in enumerate(frames):
             frame = frame[:, crop[0]:crop[1]]
-            cv2.imwrite(f'{save_path}/sequence/{str(i).zfill(3)}.jpg', frame)
+            cv2.imwrite(f'{sequence_path}/{str(i).zfill(3)}.jpg', frame)
 
         return(frames)
 
-    def stitch_images(self, frames, save_path, name, tile_config=None):
-        path = f'{self.raw_data_path}/sequence'
+    def stitch_images(self, frames, save_path, name, tile_config=None, sequence_path=None):
+        path = sequence_path if sequence_path else self.get_sequence_path(name, save_path)
 
         print(f'Stitching {len(frames)} frames together...')
 
@@ -425,7 +431,7 @@ class Experiment:
         # if tile_config=True, stitch based on tile configuration file
         if(tile_config!=None):
 
-            self.get_tile_config()
+            self.get_tile_config(path)
 
             args = {
                 "type": "[Positions from file]",
@@ -485,14 +491,16 @@ class Experiment:
             video_files = [f'{video_path}/{f}' for f in os.listdir(video_path) if os.path.isfile(os.path.join(video_path, f)) and not (f.endswith('.txt') or f=='.DS_Store' or f.endswith('.jpg'))]
 
             for video_file_path in video_files:
+                sequence_path = self.get_sequence_path(video_file_path, video_path)
                 frames = self.extract_frames(video_file_path, interval=5, save_path=video_path)
                 name = os.path.basename(video_file_path)
-                path = self.stitch_images(frames=frames, save_path=video_path, tile_config=tile_config, name=name)
+                path = self.stitch_images(frames=frames, save_path=video_path, tile_config=tile_config, name=name, sequence_path=sequence_path)
 
                 names.append(name) # return file name for subsequent saving
                 paths.append(path) # return all paths of unwrapped videos for subsequent processing
 
-            self.remove_tile_config(f"{self.raw_data_path}/sequence/TileConfiguration.txt") # delete tile configuration after using Fiji plugin
+            if video_files:
+                self.remove_tile_config(f"{self.get_sequence_path(video_files[-1], video_path)}/TileConfiguration.txt") # delete tile configuration after using Fiji plugin
 
         return paths, names
 
@@ -725,9 +733,9 @@ class Experiment:
 
         return script
 
-    def get_tile_config(self):
+    def get_tile_config(self, sequence_path):
 
-        file_name = f"{self.raw_data_path}/sequence/TileConfiguration.txt"
+        file_name = f"{sequence_path}/TileConfiguration.txt"
 
         content = """# Define the number of dimensions we are working on
         dim = 2
