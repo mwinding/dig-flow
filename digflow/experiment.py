@@ -381,10 +381,15 @@ class Experiment:
         :param interval: Interval of frames to extract (1 = every frame, 2 = every other frame, etc.)
         """
 
+        frames = []
         vidcap = cv2.VideoCapture(video_path)
+        if not vidcap.isOpened():
+            print(f'Could not open video for frame extraction: {video_path}')
+            vidcap.release()
+            return(frames)
+
         success, image = vidcap.read()
         count = 0
-        frames = []
 
         while success:
             if count <= stop_frame and (count % interval == 0):  # Save frame every 'interval' frames
@@ -393,6 +398,10 @@ class Experiment:
             count += 1
 
         vidcap.release()
+
+        if not frames:
+            print(f'No frames extracted from {video_path}. Skipping stitching for this file.')
+            return(frames)
 
         sequence_path = self.get_sequence_path(video_path, save_path)
         os.makedirs(sequence_path, exist_ok=True)
@@ -494,6 +503,9 @@ class Experiment:
                 sequence_path = self.get_sequence_path(video_file_path, video_path)
                 frames = self.extract_frames(video_file_path, interval=5, save_path=video_path)
                 name = os.path.basename(video_file_path)
+                if not frames:
+                    print(f'Skipping {name}: 0 frames extracted.')
+                    continue
                 path = self.stitch_images(frames=frames, save_path=video_path, tile_config=tile_config, name=name, sequence_path=sequence_path)
 
                 names.append(name) # return file name for subsequent saving
